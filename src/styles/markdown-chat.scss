@@ -1,67 +1,173 @@
 // 设计变量
 $primary-color: #95B79D;
-$bg-color: #F7F7F7;
 $text-color: #333333;
 $bubble-radius: 12px;
 $spacing: 16px;
 
 .chat-container {
-  padding: 20px 0;
-  background: $bg-color;
+  padding: 0;
   max-width: 100%;
   margin: 0 auto;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #333;
 
   .message {
-    margin: $spacing 0;
-    display: flex;
-    flex-direction: column;
+    margin-bottom: 20px;
     max-width: 70%;
+    position: relative;
+    
+    &.received {
+      margin-right: auto;
+      padding-left: 16px;
+      
+      .bubble {
+        background-color: #fff;
+        border: 1px solid #e5e5e5;
+        border-radius: 4px 16px 16px 16px;
+      }
 
-    .timestamp {
-      font-size: 12px;
-      color: #999;
-      margin-bottom: 4px;
-      text-align: center;
+      .timestamp {
+        margin-left: 16px;
+      }
+    }
+    
+    &.sent {
+      margin-left: auto;
+      padding-right: 16px;
+      
+      .bubble {
+        background-color: #95EC69;
+        border: none;
+        border-radius: 16px 4px 16px 16px;
+      }
+
+      .timestamp {
+        margin-right: 16px;
+        text-align: right;
+      }
     }
 
+    .timestamp {
+      font-size: 13px;
+      color: #B2B2B2;
+      margin-bottom: 5px;
+      line-height: 1.2;
+    }
+    
     .bubble {
-      padding: 12px;
-      border-radius: $bubble-radius;
-      word-wrap: break-word;
+      padding: 10px 14px;
+      word-break: break-word;
+      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
       
       p {
         margin: 0;
-        line-height: 1.5;
-      }
+        line-height: 1.6;
 
+        &:not(:last-child) {
+          margin-bottom: 8px;
+        }
+      }
+      
+      h1 {
+        font-size: 18px;
+        font-weight: bold;
+        margin: 12px 0 8px;
+        &:first-child {
+          margin-top: 0;
+        }
+      }
+      
+      h2 {
+        font-size: 17px;
+        font-weight: bold;
+        margin: 10px 0 8px;
+        &:first-child {
+          margin-top: 0;
+        }
+      }
+      
+      h3 {
+        font-size: 16px;
+        font-weight: bold;
+        margin: 8px 0 6px;
+        &:first-child {
+          margin-top: 0;
+        }
+      }
+      
+      ul, ol {
+        margin: 8px 0;
+        padding-left: 20px;
+        
+        li {
+          margin: 4px 0;
+        }
+
+        li::marker {
+          color: #666;
+        }
+      }
+      
+      blockquote {
+        margin: 8px 0;
+        padding: 4px 0 4px 10px;
+        border-left: 3px solid #d9d9d9;
+        color: #666;
+        background: rgba(0, 0, 0, 0.03);
+      }
+      
+      code {
+        font-family: Menlo, Monaco, Consolas, Courier New, monospace;
+        background-color: rgba(0, 0, 0, 0.06);
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-size: 14px;
+        color: #e83e8c;
+      }
+      
+      pre {
+        background-color: #f8f8f8;
+        padding: 12px;
+        border-radius: 4px;
+        overflow-x: auto;
+        margin: 8px 0;
+        border: 1px solid #e5e5e5;
+        
+        code {
+          background: none;
+          padding: 0;
+          color: #333;
+          font-size: 13px;
+        }
+      }
+      
+      a {
+        color: #576b95;
+        text-decoration: none;
+        
+        &:hover {
+          text-decoration: underline;
+        }
+        
+        .sent & {
+          color: #234010;
+        }
+      }
+      
       img {
         max-width: 100%;
         height: auto;
-      }
-
-      pre {
-        background: rgba(0, 0, 0, 0.05);
-        padding: 8px;
         border-radius: 4px;
-        overflow-x: auto;
+        margin: 8px 0;
       }
-    }
 
-    &.received {
-      align-self: flex-start;
-
-      .bubble {
-        background: white;
-        color: $text-color;
+      strong {
+        font-weight: 600;
       }
-    }
 
-    &.sent {
-      align-self: flex-end;
-
-      .bubble {
-        background: $primary-color;
-        color: white;
+      em {
+        font-style: italic;
       }
     }
   }

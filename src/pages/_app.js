@@ -1,6 +1,7 @@
 import { ChakraProvider } from '@chakra-ui/react'
 import theme from '@/lib/theme'
 import '@/styles/globals.scss'
+import '@/styles/markdown-chat.scss'
 
 export default function App({ Component, pageProps }) {
   return (

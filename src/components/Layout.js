@@ -9,6 +9,7 @@ const Layout = ({ children }) => {
   const navItems = [
     { label: '首页', href: '/', icon: '🏠' },
     { label: '发现', href: '/discover', icon: '🔍' },
+    { label: '更新', href: '/changelog', icon: '📋' },
     { label: '收藏', href: '/favorites', icon: '⭐' },
     { label: '我的', href: '/profile', icon: '👤' },
   ]

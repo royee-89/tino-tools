@@ -1,5 +1,20 @@
 import { config as markdownChatConfig } from '@/tools/markdown-chat'
 
+// 空工具配置（用于调试）
+const emptyToolConfig = {
+  info: {
+    id: 'empty-tool',
+    name: '空白工具',
+    description: '这是一个用于调试的空白工具',
+    icon: '🔧',
+    category: 'code',
+    tags: ['demo', 'debug']
+  },
+  routes: {
+    index: '/tools/empty-tool',
+  }
+}
+
 // 工具配置接口
 export const ToolConfig = {
   // 工具基本信息
@@ -19,15 +34,16 @@ export const ToolConfig = {
   
   // 工具组件配置
   components: {
-    icon: Component,    // 工具图标组件
-    preview: Component, // 工具预览组件
-    detail: Component,  // 工具详情组件
+    icon: Function,    // 工具图标组件
+    preview: Function, // 工具预览组件
+    detail: Function,  // 工具详情组件
   }
 }
 
 // 注册工具
 export const tools = [
   markdownChatConfig,
+  emptyToolConfig,
 ]
 
 // 获取所有工具
