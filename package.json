@@ -1,0 +1,30 @@
+{
+  "name": "tools-hub",
+  "version": "1.0.0",
+  "description": "A hub for various tools including Markdown to Chat converter",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "keywords": [
+    "tools",
+    "markdown",
+    "chat",
+    "converter"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@chakra-ui/react": "^2.8.2",
+    "@emotion/react": "^11.11.3",
+    "@emotion/styled": "^11.11.0",
+    "framer-motion": "^10.18.0",
+    "marked": "^12.0.0",
+    "next": "^14.0.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "sass": "^1.69.7"
+  }
+} 
