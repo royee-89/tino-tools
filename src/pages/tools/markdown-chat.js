@@ -94,13 +94,81 @@ export default function MarkdownChatPage() {
   }
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(html)
-    toast({
-      title: 'HTML 已复制到剪贴板',
-      status: 'success',
-      duration: 2000,
-      isClosable: true,
+    if (!markdown.trim()) {
+      toast({
+        title: '请输入对话内容',
+        status: 'warning',
+        duration: 2000,
+        isClosable: true,
+      })
+      return
+    }
+
+    // 将文本按空行分割成段落
+    const paragraphs = markdown.split(/\n\s*\n/)
+    
+    // 生成基准时间（当前时间往前推一些，以防显示超过当前时间）
+    let currentTime = new Date()
+    currentTime.setHours(currentTime.getHours() - 1)
+    
+    // 创建一个容器元素
+    const container = document.createElement('div')
+    
+    // 处理每个段落
+    paragraphs.forEach(para => {
+      const trimmedPara = para.trim()
+      const isQuestion = trimmedPara.startsWith('问：')
+      const isAnswer = trimmedPara.startsWith('答：')
+      
+      // 如果不是问题或答案，跳过
+      if (!isQuestion && !isAnswer) return
+      
+      // 移除"问："或"答："前缀
+      const content = trimmedPara.substring(2).trim()
+      
+      // 生成时间并递增
+      const messageTime = formatTime(currentTime)
+      currentTime = new Date(currentTime.getTime() + getRandomInterval())
+
+      // 生成HTML
+      const html = `
+        <section style="margin: 20px 0;">
+          <p style="font-size: 14px; color: #888888; text-align: center; margin: 10px 0;">${messageTime}</p>
+          <p style="font-size: 16px; line-height: 1.8; color: #333333; margin: 10px 0; text-align: ${isQuestion ? 'left' : 'right'}; padding: 0 16px;">
+            ${isQuestion ? '问：' : '答：'}${content}
+          </p>
+        </section>
+      `
+      
+      container.innerHTML += html
     })
+
+    // 创建临时文本区域
+    const textArea = document.createElement('textarea')
+    textArea.value = container.innerHTML
+    document.body.appendChild(textArea)
+    textArea.select()
+    
+    try {
+      document.execCommand('copy')
+      toast({
+        title: '富文本已复制到剪贴板',
+        description: '可以直接粘贴到公众号编辑器',
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      })
+    } catch (err) {
+      toast({
+        title: '复制失败',
+        description: err.message,
+        status: 'error',
+        duration: 2000,
+        isClosable: true,
+      })
+    } finally {
+      document.body.removeChild(textArea)
+    }
   }
 
   const handleTemplateClick = () => {

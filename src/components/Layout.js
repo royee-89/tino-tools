@@ -1,4 +1,4 @@
-import { Box, Container, Flex, Text, IconButton, useBreakpointValue } from '@chakra-ui/react'
+import { Box, Container, Flex, Text, IconButton, useBreakpointValue, VStack, HStack, Link as ChakraLink, Tooltip } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 
@@ -15,26 +15,30 @@ const Layout = ({ children }) => {
   ]
 
   return (
-    <Box minH="100vh" position="relative" pb={isMobile ? '60px' : 0}>
+    <Box minH="100vh" position="relative" pb={isMobile ? '120px' : '80px'}>
       {/* 顶部导航 */}
       <Box bg="white" borderBottom="1px solid" borderColor="brand.gray.200" position="sticky" top={0} zIndex={1000}>
         <Container maxW="var(--max-width)" py={3}>
           <Flex justify="space-between" align="center">
             <Link href="/" passHref>
               <Text fontSize="xl" fontWeight="bold" color="brand.primary">
-                Tools Hub
+                Tino Tools
               </Text>
             </Link>
-            <Flex gap={4} className="desktop-only">
+            <Flex gap={6} className="desktop-only">
               {navItems.map((item) => (
                 <Link key={item.href} href={item.href} passHref>
-                  <Text
-                    cursor="pointer"
-                    color={router.pathname === item.href ? 'brand.primary' : 'brand.gray.600'}
-                    _hover={{ color: 'brand.primary' }}
-                  >
-                    {item.label}
-                  </Text>
+                  <Tooltip label={item.label} placement="bottom" hasArrow>
+                    <Text
+                      cursor="pointer"
+                      fontSize="xl"
+                      color={router.pathname === item.href ? 'brand.primary' : 'brand.gray.600'}
+                      _hover={{ color: 'brand.primary', transform: 'scale(1.1)' }}
+                      transition="all 0.2s"
+                    >
+                      {item.icon}
+                    </Text>
+                  </Tooltip>
                 </Link>
               ))}
             </Flex>
@@ -47,6 +51,34 @@ const Layout = ({ children }) => {
         {children}
       </Container>
 
+      {/* 页脚 */}
+      <Box
+        position="absolute"
+        bottom={0}
+        left={0}
+        right={0}
+        bg="white"
+        borderTop="1px solid"
+        borderColor="brand.gray.200"
+        py={4}
+      >
+        <Container maxW="var(--max-width)">
+          <VStack spacing={2} align="center">
+            <HStack spacing={2} fontSize="sm" color="brand.gray.500">
+              <Text>© 2024</Text>
+              <Text>
+                月一科技 Mooniq
+              </Text>
+            </HStack>
+            <HStack spacing={2} fontSize="sm" color="brand.gray.500">
+              <ChakraLink href="https://beian.miit.gov.cn" isExternal>
+                京ICP备2025114896号-1
+              </ChakraLink>
+            </HStack>
+          </VStack>
+        </Container>
+      </Box>
+
       {/* 移动端底部导航 */}
       {isMobile && (
         <Box
@@ -58,6 +90,7 @@ const Layout = ({ children }) => {
           borderTop="1px solid"
           borderColor="brand.gray.200"
           py={2}
+          zIndex={1000}
         >
           <Flex justify="space-around" align="center">
             {navItems.map((item) => (

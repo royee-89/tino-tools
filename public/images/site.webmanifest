@@ -1,0 +1,21 @@
+{
+  "name": "Tino Tools - 月一科技工具集",
+  "short_name": "Tino Tools",
+  "description": "月一科技（Mooniq）开发工具集，提供各种实用的开发工具和实用程序",
+  "icons": [
+    {
+      "src": "/images/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#0020B0",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/"
+} 
