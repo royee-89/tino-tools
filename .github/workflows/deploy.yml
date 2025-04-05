@@ -77,25 +77,23 @@ jobs:
           echo "Uploading archive..."
           scp -v -P $SERVER_PORT deploy.tar.gz $SERVER_USERNAME@$SERVER_HOST:$DEPLOY_PATH/
           
-          echo "Backing up and extracting archive..."
+          echo "Extracting archive..."
           ssh -v -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd $DEPLOY_PATH && \
-            cp -r .next .next.bak 2>/dev/null || true && \
-            cp -r node_modules node_modules.bak 2>/dev/null || true && \
+            rm -rf .next && \
             tar -xzf deploy.tar.gz && \
-            mv .next.bak .next 2>/dev/null || true && \
-            mv node_modules.bak node_modules 2>/dev/null || true && \
             rm deploy.tar.gz"
           
           echo "Cleaning up..."
           rm files_to_archive.txt deploy.tar.gz
             
-      - name: Restart PM2
+      - name: Build and restart
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_PORT: ${{ secrets.SERVER_PORT }}
           SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
         run: |
           ssh -v -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd /www/wwwroot/tino-tools && \
-            npm install --production && \
-            npm run build && \
-            pm2 restart tino-tools || pm2 start npm --name tino-tools -- start" 
+            npm install && \
+            NODE_ENV=production npm run build && \
+            pm2 delete tino-tools || true && \
+            pm2 start npm --name tino-tools -- start" 
