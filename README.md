@@ -70,4 +70,12 @@ npm run dev
 
 ## 许可证
 
-MIT License 
+MIT License
+
+## 部署
+
+本项目使用 GitHub Actions 进行自动部署。每次推送到 master 分支时会自动触发部署流程：
+
+1. 自动构建
+2. 部署到服务器
+3. 重启服务 
