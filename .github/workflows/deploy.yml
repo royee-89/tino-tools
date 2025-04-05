@@ -65,7 +65,7 @@ jobs:
             ! -path "./.git/*" \
             ! -path "./.github/*" \
             ! -path "./node_modules/*" \
-            ! -path "./.next/cache/*" \
+            ! -path "./.next/*" \
             ! -name ".DS_Store" \
             ! -name "deploy.tar.gz" \
             -print > files_to_archive.txt
@@ -76,8 +76,14 @@ jobs:
           echo "Uploading archive..."
           scp -v -P $SERVER_PORT deploy.tar.gz $SERVER_USERNAME@$SERVER_HOST:$DEPLOY_PATH/
           
-          echo "Extracting archive..."
-          ssh -v -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd $DEPLOY_PATH && tar -xzf deploy.tar.gz && rm deploy.tar.gz"
+          echo "Backing up and extracting archive..."
+          ssh -v -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd $DEPLOY_PATH && \
+            cp -r .next .next.bak 2>/dev/null || true && \
+            cp -r node_modules node_modules.bak 2>/dev/null || true && \
+            tar -xzf deploy.tar.gz && \
+            mv .next.bak .next 2>/dev/null || true && \
+            mv node_modules.bak node_modules 2>/dev/null || true && \
+            rm deploy.tar.gz"
           
           echo "Cleaning up..."
           rm files_to_archive.txt deploy.tar.gz
@@ -88,4 +94,7 @@ jobs:
           SERVER_PORT: ${{ secrets.SERVER_PORT }}
           SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
         run: |
-          ssh -v -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd /www/wwwroot/tino-tools && npm install && pm2 restart tino-tools || pm2 start npm --name tino-tools -- start" 
+          ssh -v -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd /www/wwwroot/tino-tools && \
+            npm install --production && \
+            npm run build && \
+            pm2 restart tino-tools || pm2 start npm --name tino-tools -- start" 
