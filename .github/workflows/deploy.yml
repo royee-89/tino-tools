@@ -56,11 +56,9 @@ jobs:
           DEPLOY_PATH: /www/wwwroot/tino-tools
         run: |
           echo "Starting deployment..."
-          rsync -avz --delete -e "ssh -p $SERVER_PORT -v" \
-            --exclude='.git' \
-            --exclude='.github' \
-            --exclude='node_modules' \
-            ./ $SERVER_USERNAME@$SERVER_HOST:$DEPLOY_PATH/
+          tar -czf deploy.tar.gz --exclude='.git' --exclude='.github' --exclude='node_modules' .
+          scp -P $SERVER_PORT deploy.tar.gz $SERVER_USERNAME@$SERVER_HOST:$DEPLOY_PATH/
+          ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd $DEPLOY_PATH && tar -xzf deploy.tar.gz && rm deploy.tar.gz"
             
       - name: Restart PM2
         env:
