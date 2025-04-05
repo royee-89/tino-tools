@@ -67,6 +67,7 @@ jobs:
             ! -path "./node_modules/*" \
             ! -path "./.next/*" \
             ! -name ".DS_Store" \
+            ! -name "._*" \
             ! -name "deploy.tar.gz" \
             -print > files_to_archive.txt
           
