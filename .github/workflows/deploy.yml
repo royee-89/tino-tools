@@ -62,13 +62,8 @@ jobs:
         run: |
           echo "Creating deployment package..."
           
-          # Create backup of current version
-          ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd $DEPLOY_PATH && \
-            if [ -f package.json ]; then \
-              tar -czf ../tino-tools-backup-$(date +%Y%m%d_%H%M%S).tar.gz . ; \
-            fi"
-          
           # Create clean file list
+          echo "Creating file list..."
           find . -type f \
             ! -path "./.git/*" \
             ! -path "./.github/*" \
@@ -82,18 +77,34 @@ jobs:
             ! -name ".*" \
             -print > files_to_archive.txt
           
+          # Show files to be packaged
+          echo "Files to be packaged:"
+          cat files_to_archive.txt
+          
           # Create deployment package
+          echo "Creating tar archive..."
           tar --exclude=".*" -czf deploy.tar.gz -T files_to_archive.txt
           
           echo "Uploading deployment package..."
           scp -P $SERVER_PORT deploy.tar.gz $SERVER_USERNAME@$SERVER_HOST:$DEPLOY_PATH/
           
-          echo "Cleaning up old files..."
+          echo "Preparing server environment..."
           ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd $DEPLOY_PATH && \
-            find . -name '._*' -delete && \
-            find . -name '.DS_Store' -delete && \
-            rm -rf .next node_modules && \
+            # Backup current version if exists
+            if [ -f package.json ]; then \
+              echo 'Creating backup...' && \
+              tar -czf ../tino-tools-backup-\$(date +%Y%m%d_%H%M%S).tar.gz . ; \
+            fi && \
+            # Clean up old files but keep the new package
+            echo 'Cleaning old files...' && \
+            find . -mindepth 1 -maxdepth 1 ! -name 'deploy.tar.gz' -exec rm -rf {} + && \
+            # Extract new files
+            echo 'Extracting new files...' && \
             tar -xzf deploy.tar.gz && \
+            # Show extracted files
+            echo 'Extracted files:' && \
+            ls -la && \
+            # Remove the package
             rm deploy.tar.gz"
           
           rm files_to_archive.txt deploy.tar.gz
@@ -106,9 +117,18 @@ jobs:
         run: |
           echo "Installing dependencies and starting application..."
           ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd /www/wwwroot/tino-tools && \
+            # Check current directory
+            echo 'Current directory contents:' && \
+            ls -la && \
+            # Install dependencies
+            echo 'Installing dependencies...' && \
             export NODE_ENV=production && \
             npm install && \
+            # Build project
+            echo 'Building project...' && \
             npm run build && \
+            # Start application
+            echo 'Starting application...' && \
             export PORT=3000 HOST=0.0.0.0 && \
             pm2 delete tino-tools || true && \
             pm2 start npm --name tino-tools -- start"
