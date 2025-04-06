@@ -93,7 +93,7 @@ jobs:
           
           # Create deployment package without macOS metadata
           echo "Creating tar archive..."
-          tar --no-mac-metadata --exclude=".*" -czf deploy.tar.gz -T files_to_archive.txt
+          tar --exclude=".*" -czf deploy.tar.gz -T files_to_archive.txt
           
           # Verify tar file was created successfully
           if [ ! -f deploy.tar.gz ]; then
