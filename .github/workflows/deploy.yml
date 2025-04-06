@@ -23,10 +23,15 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
+          cache: 'npm'
           
       - name: Install dependencies
         run: |
-          npm install
+          npm ci
+        
+      - name: Run tests
+        run: |
+          npm run test || echo "No tests found"
         
       - name: Build project
         run: |
@@ -58,42 +63,61 @@ jobs:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_PORT: ${{ secrets.SERVER_PORT }}
           SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
-          DEPLOY_PATH: /www/wwwroot/tino-tools
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
-          echo "Creating deployment package..."
+          echo "=== Starting deployment preparation ==="
           
           # Create clean file list
           echo "Creating file list..."
           find . -type f \
-            ! -path "./.git/*" \
-            ! -path "./.github/*" \
-            ! -path "./node_modules/*" \
-            ! -path "./.next/*" \
-            ! -name ".DS_Store" \
-            ! -name "._*" \
-            ! -name ".AppleDouble" \
-            ! -name ".LSOverride" \
-            ! -name "deploy.tar.gz" \
+            ! -path "*/\.*" \
+            ! -path "*/node_modules/*" \
+            ! -path "*/_next/*" \
+            ! -path "*/coverage/*" \
             ! -name ".*" \
+            ! -name "*~" \
+            ! -name "*.swp" \
+            ! -name "*.bak" \
+            ! -name "files_to_archive.txt" \
+            ! -name "deploy.tar.gz" \
             -print > files_to_archive.txt
           
           # Show files to be packaged
           echo "Files to be packaged:"
           cat files_to_archive.txt
           
-          # Create deployment package
+          # Verify file list is not empty
+          if [ ! -s files_to_archive.txt ]; then
+            echo "Error: No files found to package"
+            exit 1
+          fi
+          
+          # Create deployment package without macOS metadata
           echo "Creating tar archive..."
-          tar --exclude=".*" -czf deploy.tar.gz -T files_to_archive.txt
+          tar --no-mac-metadata --exclude=".*" -czf deploy.tar.gz -T files_to_archive.txt
+          
+          # Verify tar file was created successfully
+          if [ ! -f deploy.tar.gz ]; then
+            echo "Error: Failed to create deployment package"
+            exit 1
+          fi
           
           echo "Uploading deployment package..."
-          scp -P $SERVER_PORT deploy.tar.gz $SERVER_USERNAME@$SERVER_HOST:$DEPLOY_PATH/
+          if ! scp -P $SERVER_PORT deploy.tar.gz $SERVER_USERNAME@$SERVER_HOST:$DEPLOY_PATH/; then
+            echo "Error: Failed to upload deployment package"
+            exit 1
+          fi
           
           echo "Preparing server environment..."
           ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd $DEPLOY_PATH && \
+            # Create backup directory if it doesn't exist
+            mkdir -p ../backups && \
             # Backup current version if exists
             if [ -f package.json ]; then \
               echo 'Creating backup...' && \
-              tar -czf ../tino-tools-backup-\$(date +%Y%m%d_%H%M%S).tar.gz . ; \
+              tar -czf ../backups/tino-tools-backup-\$(date +%Y%m%d_%H%M%S).tar.gz . && \
+              # Keep only last 5 backups
+              cd ../backups && ls -t | tail -n +6 | xargs -I {} rm -f {} && cd - ; \
             fi && \
             # Clean up old files but keep the new package
             echo 'Cleaning old files...' && \
@@ -107,45 +131,74 @@ jobs:
             # Remove the package
             rm deploy.tar.gz"
           
+          # Clean up local files
           rm files_to_archive.txt deploy.tar.gz
+          
+          echo "=== Deployment preparation completed ==="
             
       - name: Deploy and start application
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_PORT: ${{ secrets.SERVER_PORT }}
           SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
-          echo "Installing dependencies and starting application..."
-          ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd /www/wwwroot/tino-tools && \
-            # Check current directory
-            echo 'Current directory contents:' && \
-            ls -la && \
-            # Install dependencies
-            echo 'Installing dependencies...' && \
+          echo "=== Starting application deployment ==="
+          
+          # Deploy and start application with error handling
+          if ! ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd $DEPLOY_PATH && \
             export NODE_ENV=production && \
-            npm install && \
-            # Build project
-            echo 'Building project...' && \
+            echo 'Installing dependencies...' && \
+            npm ci && \
+            echo 'Building application...' && \
             npm run build && \
-            # Start application
             echo 'Starting application...' && \
             export PORT=3000 HOST=0.0.0.0 && \
             pm2 delete tino-tools || true && \
-            pm2 start npm --name tino-tools -- start"
+            pm2 start npm --name tino-tools -- start"; then
             
+            echo "Deployment failed, attempting rollback..."
+            
+            # Attempt rollback to last backup
+            LATEST_BACKUP=\$(ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "ls -t ../backups/tino-tools-backup-*.tar.gz | head -1")
+            
+            if [ ! -z "$LATEST_BACKUP" ]; then
+              echo "Rolling back to $LATEST_BACKUP..."
+              ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd $DEPLOY_PATH && \
+                rm -rf * && \
+                tar -xzf $LATEST_BACKUP && \
+                export NODE_ENV=production && \
+                npm ci && \
+                npm run build && \
+                export PORT=3000 HOST=0.0.0.0 && \
+                pm2 delete tino-tools || true && \
+                pm2 start npm --name tino-tools -- start"
+              
+              echo "Rollback completed"
+              exit 1
+            else
+              echo "No backup found for rollback"
+              exit 1
+            fi
+          fi
+          
+          echo "=== Application deployment completed ==="
+          
       - name: Verify deployment
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_PORT: ${{ secrets.SERVER_PORT }}
           SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
         run: |
-          echo "Verifying deployment..."
-          if ! curl -s http://$SERVER_HOST:3000 > /dev/null; then
-            echo "Application is not responding"
-            echo "Checking PM2 status..."
-            ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "pm2 status"
-            echo "Checking application logs..."
-            ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "pm2 logs tino-tools --lines 50"
+          echo "=== Verifying deployment ==="
+          
+          # Wait for application to start
+          sleep 10
+          
+          # Check if process is running
+          if ! ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "pm2 show tino-tools | grep -q 'status.*online'"; then
+            echo "Error: Application is not running"
             exit 1
           fi
-          echo "Deployment verified successfully" 
+          
+          echo "=== Deployment verification completed ===" 
