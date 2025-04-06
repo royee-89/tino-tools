@@ -39,9 +39,14 @@ jobs:
           echo "export const BUILD_DATE = '$(date)';" >> src/lib/version.js
           # 清理缓存并构建
           rm -rf .next
+          # 添加随机字符串到构建中，确保每次构建都是唯一的
+          echo "NEXT_PUBLIC_BUILD_ID=$(date +%s)" > .env.production
           npm run build
         env:
           NODE_ENV: production
+          # 禁用Next.js的构建缓存
+          NEXT_TELEMETRY_DISABLED: 1
+          NEXT_FORCE_BUILD: true
           
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.8.0
@@ -145,23 +150,32 @@ jobs:
             echo 'Starting application...'
             export NODE_ENV=production
             export PATH=\$PATH:\$(pwd)/node_modules/.bin
-            export PORT=3000
-            export HOST=0.0.0.0
             
             # 确保.next目录权限正确
             if [ -d .next ]; then
               chmod -R 755 .next
+              
+              # 通过添加时间戳到静态文件，强制客户端刷新
+              find .next -type f -name "*.js" -o -name "*.css" | xargs -I{} touch {}
             fi
             
             # 清理任何可能的缓存文件
             find ./public -name '*.gz' -delete
             find ./public -name '*.br' -delete
             
+            # 确保使用最新构建文件
+            echo 'const requireCache = require.cache; for (const key in requireCache) { delete requireCache[key]; }' > clear-cache.js
+            node clear-cache.js
+            
+            # 使用 PORT 环境变量启动 Next.js
+            export PORT=3000
+            export HOST=0.0.0.0
+            
             # Delete existing PM2 process if exists
             pm2 delete tino-tools 2>/dev/null || true
             
-            # Start with PM2
-            pm2 start npm --name tino-tools -- start
+            # Start with PM2 and force environment refresh
+            pm2 start npm --update-env --name tino-tools -- start
             
             # Verify application is running
             echo 'Verifying application...'
