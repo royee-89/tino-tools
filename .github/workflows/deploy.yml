@@ -52,11 +52,18 @@ jobs:
           echo "测试 SSH 连接..."
           ssh -o StrictHostKeyChecking=no -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "echo '连接成功'"
           
+          echo "创建部署目录..."
+          ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "mkdir -p /www/wwwroot/tino-tools"
+          
           echo "打包项目文件..."
-          tar -zcf /tmp/deploy.tar.gz .
+          tar -zcvf /tmp/deploy.tar.gz .
+          ls -lh /tmp/deploy.tar.gz
           
           echo "传输文件到服务器..."
-          scp -P $SERVER_PORT /tmp/deploy.tar.gz $SERVER_USERNAME@$SERVER_HOST:/www/wwwroot/tino-tools/
+          scp -v -P $SERVER_PORT /tmp/deploy.tar.gz $SERVER_USERNAME@$SERVER_HOST:/www/wwwroot/tino-tools/
+          
+          echo "检查文件传输结果..."
+          ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "ls -lh /www/wwwroot/tino-tools/deploy.tar.gz"
           
           echo "执行部署命令..."
           ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd /www/wwwroot/tino-tools && \
