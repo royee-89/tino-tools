@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -12,33 +13,28 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
+      
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-          
+      
       - name: Install dependencies
         run: |
           npm install
-          
+      
       - name: Build project
         run: |
           npm run build
           
+      - name: Create deployment package
+        run: |
+          tar -czf deploy.tar.gz .next node_modules package.json package-lock.json public
+      
       - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.8.0
+        uses: webfactory/ssh-action@master
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          
-      - name: Debug SSH
-        run: |
-          echo "Testing SSH connection..."
-          ssh-add -l
-          echo "Checking SSH configuration..."
-          ls -la ~/.ssh
-          echo "SSH Agent PID: $SSH_AGENT_PID"
-          echo "SSH Auth Sock: $SSH_AUTH_SOCK"
           
       - name: Add known hosts
         run: |
@@ -46,54 +42,43 @@ jobs:
           chmod 700 ~/.ssh
           ssh-keyscan -p ${{ secrets.SERVER_PORT }} -v ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts 2>&1
           chmod 600 ~/.ssh/known_hosts
-          cat ~/.ssh/known_hosts
           
       - name: Test SSH connection
         run: |
           ssh -v -p ${{ secrets.SERVER_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} "echo 'SSH connection successful'"
           
       - name: Deploy to server
-        env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
-          DEPLOY_PATH: /www/wwwroot/tino-tools
-        run: |
-          echo "Starting deployment..."
-          echo "Creating file list..."
-          find . -type f \
-            ! -path "./.git/*" \
-            ! -path "./.github/*" \
-            ! -path "./node_modules/*" \
-            ! -path "./.next/*" \
-            ! -name ".DS_Store" \
-            ! -name "._*" \
-            ! -name "deploy.tar.gz" \
-            -print > files_to_archive.txt
-          
-          echo "Creating archive..."
-          tar -czf deploy.tar.gz -T files_to_archive.txt
-          
-          echo "Uploading archive..."
-          scp -v -P $SERVER_PORT deploy.tar.gz $SERVER_USERNAME@$SERVER_HOST:$DEPLOY_PATH/
-          
-          echo "Extracting archive..."
-          ssh -v -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd $DEPLOY_PATH && \
-            rm -rf .next && \
-            tar -xzf deploy.tar.gz && \
-            rm deploy.tar.gz"
-          
-          echo "Cleaning up..."
-          rm files_to_archive.txt deploy.tar.gz
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: |
+            # 确保目录存在
+            mkdir -p /www/wwwroot/tino-tools
+            cd /www/wwwroot/tino-tools
             
-      - name: Build and restart
-        env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
-        run: |
-          ssh -v -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd /www/wwwroot/tino-tools && \
-            npm install && \
-            NODE_ENV=production npm run build && \
-            pm2 delete tino-tools || true && \
-            pm2 start npm --name tino-tools -- start" 
+            # 备份当前版本
+            if [ -d ".next" ]; then
+              mv .next .next_backup
+            fi
+            
+            # 解压新版本
+            tar -xzf deploy.tar.gz
+            
+            # 如果解压成功，删除备份
+            if [ $? -eq 0 ]; then
+              rm -rf .next_backup
+            else
+              # 如果解压失败，恢复备份
+              mv .next_backup .next
+              exit 1
+            fi
+            
+            # 清理
+            rm -f deploy.tar.gz
+            
+            # 重启应用
+            export NODE_ENV=production
+            pm2 reload tino-tools || pm2 start npm --name tino-tools -- start 
