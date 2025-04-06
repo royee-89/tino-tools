@@ -146,15 +146,49 @@ jobs:
           
           # Deploy and start application with error handling
           if ! ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd $DEPLOY_PATH && \
-            export NODE_ENV=production && \
+            # Backup current version if exists
+            if [ -f package.json ]; then \
+              echo 'Creating backup...' && \
+              mkdir -p ../backups && \
+              tar -czf ../backups/tino-tools-backup-\$(date +%Y%m%d_%H%M%S).tar.gz . && \
+              cd ../backups && ls -t | tail -n +6 | xargs -I {} rm -f {} && cd - ; \
+            fi && \
+            # Clean directory but keep the new package
+            echo 'Cleaning old files...' && \
+            find . -mindepth 1 -maxdepth 1 ! -name 'deploy.tar.gz' -exec rm -rf {} + && \
+            # Extract new files
+            echo 'Extracting new files...' && \
+            tar -xzf deploy.tar.gz && \
+            rm -f deploy.tar.gz && \
+            # Fix permissions
+            echo 'Fixing permissions...' && \
+            chown -R root:root . && \
+            chmod -R 755 . && \
+            # Verify critical files
+            echo 'Verifying files...' && \
+            if [ ! -f package.json ]; then \
+              echo 'Error: package.json not found' && exit 1; \
+            fi && \
+            if [ ! -f next.config.js ]; then \
+              echo 'Error: next.config.js not found' && exit 1; \
+            fi && \
+            # Install and build
             echo 'Installing dependencies...' && \
+            export NODE_ENV=production && \
             npm install && \
             echo 'Building application...' && \
             npm run build && \
+            # Start application
             echo 'Starting application...' && \
             export PORT=3000 HOST=0.0.0.0 && \
             pm2 delete tino-tools || true && \
-            pm2 start npm --name tino-tools -- start"; then
+            pm2 start npm --name tino-tools -- start && \
+            # Verify application is running
+            echo 'Verifying application...' && \
+            sleep 5 && \
+            if ! pm2 show tino-tools | grep -q 'status.*online'; then \
+              echo 'Error: Application failed to start' && exit 1; \
+            fi"; then
             
             echo "Deployment failed, attempting rollback..."
             
@@ -168,6 +202,8 @@ jobs:
                 cd ../backups && \
                 tar -xzf ${LATEST_BACKUP} -C $DEPLOY_PATH && \
                 cd $DEPLOY_PATH && \
+                chown -R root:root . && \
+                chmod -R 755 . && \
                 export NODE_ENV=production && \
                 npm install && \
                 npm run build && \
