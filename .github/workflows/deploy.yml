@@ -159,13 +159,15 @@ jobs:
             echo "Deployment failed, attempting rollback..."
             
             # Attempt rollback to last backup
-            LATEST_BACKUP=\$(ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "ls -t ../backups/tino-tools-backup-*.tar.gz | head -1")
+            LATEST_BACKUP=$(ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd ../backups && ls -t tino-tools-backup-*.tar.gz | head -1")
             
-            if [ ! -z "$LATEST_BACKUP" ]; then
-              echo "Rolling back to $LATEST_BACKUP..."
+            if [ -n "${LATEST_BACKUP}" ]; then
+              echo "Rolling back to ${LATEST_BACKUP}..."
               ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd $DEPLOY_PATH && \
                 rm -rf * && \
-                tar -xzf $LATEST_BACKUP && \
+                cd ../backups && \
+                tar -xzf ${LATEST_BACKUP} -C $DEPLOY_PATH && \
+                cd $DEPLOY_PATH && \
                 export NODE_ENV=production && \
                 npm install && \
                 npm run build && \
