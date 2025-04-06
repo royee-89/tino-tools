@@ -83,7 +83,7 @@ jobs:
             -print > files_to_archive.txt
           
           # Create deployment package
-          tar --exclude=".*" --no-xattrs --no-mac-metadata -czf deploy.tar.gz -T files_to_archive.txt
+          tar --exclude=".*" -czf deploy.tar.gz -T files_to_archive.txt
           
           echo "Uploading deployment package..."
           scp -P $SERVER_PORT deploy.tar.gz $SERVER_USERNAME@$SERVER_HOST:$DEPLOY_PATH/
