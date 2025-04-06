@@ -69,8 +69,7 @@ jobs:
           # Create clean file list
           echo "Creating file list..."
           find . -maxdepth 1 -type f \
-            ! -path "*/\.*" \
-            ! -name ".*" \
+            ! -path "*/node_modules/*" \
             ! -name "*~" \
             ! -name "*.swp" \
             ! -name "*.bak" \
@@ -79,19 +78,21 @@ jobs:
             -print > files_to_archive.txt
           
           find ./src -type f \
-            ! -path "*/\.*" \
-            ! -name ".*" \
+            ! -path "*/node_modules/*" \
             ! -name "*~" \
             ! -name "*.swp" \
             ! -name "*.bak" \
             -print >> files_to_archive.txt
             
           find ./public -type f \
-            ! -path "*/\.*" \
-            ! -name ".*" \
+            ! -path "*/node_modules/*" \
             ! -name "*~" \
             ! -name "*.swp" \
             ! -name "*.bak" \
+            -print >> files_to_archive.txt
+
+          find ./.next -type f \
+            ! -path "*/node_modules/*" \
             -print >> files_to_archive.txt
           
           # Show files to be packaged
@@ -148,14 +149,12 @@ jobs:
             if [ ! -f next.config.js ]; then \
               echo 'Error: next.config.js not found' && exit 1; \
             fi && \
-            # Install and build
-            echo 'Installing dependencies...' && \
-            export NODE_ENV=production && \
-            npm install && \
-            echo 'Building application...' && \
-            npm run build && \
+            if [ ! -d .next ]; then \
+              echo 'Error: .next directory not found' && exit 1; \
+            fi && \
             # Start application
             echo 'Starting application...' && \
+            export NODE_ENV=production && \
             export PORT=3000 HOST=0.0.0.0 && \
             pm2 delete tino-tools || true && \
             pm2 start npm --name tino-tools -- start && \
@@ -207,6 +206,9 @@ jobs:
             fi && \
             if [ ! -f next.config.js ]; then \
               echo 'Error: next.config.js not found' && exit 1; \
+            fi && \
+            if [ ! -d .next ]; then \
+              echo 'Error: .next directory not found' && exit 1; \
             fi && \
             # Install and build
             echo 'Installing dependencies...' && \
