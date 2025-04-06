@@ -1,4 +1,5 @@
-import { Box, Container, Flex, Text, IconButton, useBreakpointValue, VStack, HStack, Link as ChakraLink, Tooltip } from '@chakra-ui/react'
+import { Box, Container, Flex, Text, IconButton, useBreakpointValue, VStack, HStack, Link as ChakraLink, Tooltip, Image, Menu, MenuButton, MenuList, MenuItem, Button } from '@chakra-ui/react'
+import { ChevronDownIcon } from '@chakra-ui/icons'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 
@@ -9,9 +10,9 @@ const Layout = ({ children }) => {
   const navItems = [
     { label: '首页', href: '/', icon: '🏠' },
     { label: '发现', href: '/discover', icon: '🔍' },
-    { label: '更新', href: '/changelog', icon: '📋' },
+    { label: '更新日志', href: '/changelog', icon: '📋' },
     { label: '收藏', href: '/favorites', icon: '⭐' },
-    { label: '我的', href: '/profile', icon: '👤' },
+    { label: '个人中心', href: '/profile', icon: '👤' },
   ]
 
   return (
@@ -20,27 +21,55 @@ const Layout = ({ children }) => {
       <Box bg="white" borderBottom="1px solid" borderColor="brand.gray.200" position="sticky" top={0} zIndex={1000}>
         <Container maxW="var(--max-width)" py={3}>
           <Flex justify="space-between" align="center">
-            <Link href="/" passHref>
-              <Text fontSize="xl" fontWeight="bold" color="brand.primary">
-                Tino Tools
-              </Text>
+            <Link href="/">
+              <HStack spacing={3} cursor="pointer">
+                <Box 
+                  position="relative" 
+                  width="32px" 
+                  height="32px"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                >
+                  <Image 
+                    src="/assets/brand/logo/logo.png" 
+                    alt="Tino Tools" 
+                    boxSize="32px"
+                    objectFit="contain"
+                    transform="scale(1.2)"
+                    transition="transform 0.2s"
+                    _hover={{ transform: 'scale(1.3)' }}
+                  />
+                </Box>
+                <Text 
+                  fontSize="lg" 
+                  fontWeight="600"
+                  color="#000000"
+                >
+                  Tino Tools
+                </Text>
+              </HStack>
             </Link>
-            <Flex gap={6} className="desktop-only">
-              {navItems.map((item) => (
-                <Link key={item.href} href={item.href} passHref>
-                  <Tooltip label={item.label} placement="bottom" hasArrow>
-                    <Text
-                      cursor="pointer"
-                      fontSize="xl"
-                      color={router.pathname === item.href ? 'brand.primary' : 'brand.gray.600'}
-                      _hover={{ color: 'brand.primary', transform: 'scale(1.1)' }}
-                      transition="all 0.2s"
-                    >
-                      {item.icon}
-                    </Text>
-                  </Tooltip>
-                </Link>
-              ))}
+            <Flex gap={6} align="center">
+              <Flex gap={6} className="desktop-only">
+                {navItems.map((item) => (
+                  <Link key={item.href} href={item.href} passHref legacyBehavior>
+                    <ChakraLink _hover={{ textDecoration: 'none' }}>
+                      <Tooltip label={item.label} placement="bottom" hasArrow>
+                        <Text
+                          cursor="pointer"
+                          fontSize="xl"
+                          color={router.pathname === item.href ? 'brand.primary' : 'brand.gray.600'}
+                          _hover={{ color: 'brand.primary', transform: 'scale(1.1)' }}
+                          transition="all 0.2s"
+                        >
+                          {item.icon}
+                        </Text>
+                      </Tooltip>
+                    </ChakraLink>
+                  </Link>
+                ))}
+              </Flex>
             </Flex>
           </Flex>
         </Container>
@@ -65,10 +94,7 @@ const Layout = ({ children }) => {
         <Container maxW="var(--max-width)">
           <VStack spacing={2} align="center">
             <HStack spacing={2} fontSize="sm" color="brand.gray.500">
-              <Text>© 2024</Text>
-              <Text>
-                月一科技 Mooniq
-              </Text>
+              <Text>© 2024 Tino Tools</Text>
             </HStack>
             <HStack spacing={2} fontSize="sm" color="brand.gray.500">
               <ChakraLink href="https://beian.miit.gov.cn" isExternal>
@@ -94,15 +120,17 @@ const Layout = ({ children }) => {
         >
           <Flex justify="space-around" align="center">
             {navItems.map((item) => (
-              <Link key={item.href} href={item.href} passHref>
-                <Flex
-                  direction="column"
-                  align="center"
-                  color={router.pathname === item.href ? 'brand.primary' : 'brand.gray.600'}
-                >
-                  <Text fontSize="xl">{item.icon}</Text>
-                  <Text fontSize="xs">{item.label}</Text>
-                </Flex>
+              <Link key={item.href} href={item.href} passHref legacyBehavior>
+                <ChakraLink _hover={{ textDecoration: 'none' }}>
+                  <Flex
+                    direction="column"
+                    align="center"
+                    color={router.pathname === item.href ? 'brand.primary' : 'brand.gray.600'}
+                  >
+                    <Text fontSize="xl">{item.icon}</Text>
+                    <Text fontSize="xs">{item.label}</Text>
+                  </Flex>
+                </ChakraLink>
               </Link>
             ))}
           </Flex>
