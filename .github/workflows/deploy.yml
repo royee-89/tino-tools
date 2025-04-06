@@ -26,7 +26,14 @@ jobs:
           
       - name: Install dependencies
         run: |
-          npm install
+          # 清理 npm 缓存
+          npm cache clean --force
+          # 使用 --legacy-peer-deps 标志确保兼容性
+          npm install --legacy-peer-deps
+          # 确保安装所有必要的 Chakra UI 依赖
+          npm install @chakra-ui/react @chakra-ui/icons @emotion/react @emotion/styled framer-motion --legacy-peer-deps
+          # 验证依赖是否安装成功
+          ls -la node_modules/@chakra-ui/icons || echo "@chakra-ui/icons 依赖未找到"
         
       - name: Run tests
         run: |
