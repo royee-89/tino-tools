@@ -27,6 +27,35 @@ jobs:
         run: |
           npm run build
       
+      - name: Configure Tencent Cloud Security Group
+        env:
+          TENCENTCLOUD_SECRET_ID: ${{ secrets.TENCENTCLOUD_SECRET_ID }}
+          TENCENTCLOUD_SECRET_KEY: ${{ secrets.TENCENTCLOUD_SECRET_KEY }}
+          SECURITY_GROUP_ID: ${{ secrets.SECURITY_GROUP_ID }}
+          REGION: ${{ secrets.REGION }}
+        run: |
+          # 安装腾讯云 CLI
+          pip install tccli
+          
+          # 配置腾讯云凭证
+          tccli configure set secretId $TENCENTCLOUD_SECRET_ID
+          tccli configure set secretKey $TENCENTCLOUD_SECRET_KEY
+          tccli configure set region $REGION
+          
+          # 获取当前 IP
+          CURRENT_IP=$(curl -s ifconfig.me)
+          echo "当前 IP: $CURRENT_IP"
+          
+          # 添加安全组规则
+          echo "添加安全组规则..."
+          tccli vpc CreateSecurityGroupPolicies --cli-unfold-argument \
+            --SecurityGroupId $SECURITY_GROUP_ID \
+            --SecurityGroupPolicySet.Ingress.0.Protocol TCP \
+            --SecurityGroupPolicySet.Ingress.0.Port 22 \
+            --SecurityGroupPolicySet.Ingress.0.CidrBlock ${CURRENT_IP}/32 \
+            --SecurityGroupPolicySet.Ingress.0.Action ACCEPT \
+            --SecurityGroupPolicySet.Ingress.0.Description "GitHub Actions Deploy"
+      
       - name: Deploy to server
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
@@ -40,7 +69,7 @@ jobs:
           chmod 700 ~/.ssh
           
           echo "写入 SSH 密钥..."
-          echo "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_rsa
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           
           echo "设置密钥权限..."
           chmod 600 ~/.ssh/id_rsa
@@ -63,4 +92,24 @@ jobs:
             tar -xzf deploy.tar.gz && \
             rm -f deploy.tar.gz && \
             export NODE_ENV=production && \
-            pm2 reload tino-tools || pm2 start npm --name tino-tools -- start" 
+            pm2 reload tino-tools || pm2 start npm --name tino-tools -- start"
+      
+      - name: Cleanup Security Group Rule
+        if: always()
+        env:
+          TENCENTCLOUD_SECRET_ID: ${{ secrets.TENCENTCLOUD_SECRET_ID }}
+          TENCENTCLOUD_SECRET_KEY: ${{ secrets.TENCENTCLOUD_SECRET_KEY }}
+          SECURITY_GROUP_ID: ${{ secrets.SECURITY_GROUP_ID }}
+          REGION: ${{ secrets.REGION }}
+        run: |
+          # 获取当前 IP
+          CURRENT_IP=$(curl -s ifconfig.me)
+          
+          # 删除安全组规则
+          echo "清理安全组规则..."
+          tccli vpc DeleteSecurityGroupPolicies --cli-unfold-argument \
+            --SecurityGroupId $SECURITY_GROUP_ID \
+            --SecurityGroupPolicySet.Ingress.0.Protocol TCP \
+            --SecurityGroupPolicySet.Ingress.0.Port 22 \
+            --SecurityGroupPolicySet.Ingress.0.CidrBlock ${CURRENT_IP}/32 \
+            --SecurityGroupPolicySet.Ingress.0.Action ACCEPT 
