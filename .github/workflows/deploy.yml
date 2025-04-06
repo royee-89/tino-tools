@@ -68,11 +68,8 @@ jobs:
           
           # Create clean file list
           echo "Creating file list..."
-          find . -type f \
+          find . -maxdepth 1 -type f \
             ! -path "*/\.*" \
-            ! -path "*/node_modules/*" \
-            ! -path "*/_next/*" \
-            ! -path "*/coverage/*" \
             ! -name ".*" \
             ! -name "*~" \
             ! -name "*.swp" \
@@ -80,6 +77,22 @@ jobs:
             ! -name "files_to_archive.txt" \
             ! -name "deploy.tar.gz" \
             -print > files_to_archive.txt
+          
+          find ./src -type f \
+            ! -path "*/\.*" \
+            ! -name ".*" \
+            ! -name "*~" \
+            ! -name "*.swp" \
+            ! -name "*.bak" \
+            -print >> files_to_archive.txt
+            
+          find ./public -type f \
+            ! -path "*/\.*" \
+            ! -name ".*" \
+            ! -name "*~" \
+            ! -name "*.swp" \
+            ! -name "*.bak" \
+            -print >> files_to_archive.txt
           
           # Show files to be packaged
           echo "Files to be packaged:"
@@ -91,9 +104,9 @@ jobs:
             exit 1
           fi
           
-          # Create deployment package without macOS metadata
+          # Create deployment package
           echo "Creating tar archive..."
-          tar --exclude=".*" -czf deploy.tar.gz -T files_to_archive.txt
+          tar -czf deploy.tar.gz -T files_to_archive.txt
           
           # Verify tar file was created successfully
           if [ ! -f deploy.tar.gz ]; then
@@ -109,26 +122,49 @@ jobs:
           
           echo "Preparing server environment..."
           ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd $DEPLOY_PATH && \
-            # Create backup directory if it doesn't exist
-            mkdir -p ../backups && \
             # Backup current version if exists
             if [ -f package.json ]; then \
               echo 'Creating backup...' && \
+              mkdir -p ../backups && \
               tar -czf ../backups/tino-tools-backup-\$(date +%Y%m%d_%H%M%S).tar.gz . && \
-              # Keep only last 5 backups
               cd ../backups && ls -t | tail -n +6 | xargs -I {} rm -f {} && cd - ; \
             fi && \
-            # Clean up old files but keep the new package
+            # Clean directory but keep the new package
             echo 'Cleaning old files...' && \
             find . -mindepth 1 -maxdepth 1 ! -name 'deploy.tar.gz' -exec rm -rf {} + && \
             # Extract new files
             echo 'Extracting new files...' && \
             tar -xzf deploy.tar.gz && \
-            # Show extracted files
-            echo 'Extracted files:' && \
-            ls -la && \
-            # Remove the package
-            rm deploy.tar.gz"
+            rm -f deploy.tar.gz && \
+            # Fix permissions
+            echo 'Fixing permissions...' && \
+            chown -R root:root . && \
+            chmod -R 755 . && \
+            # Verify critical files
+            echo 'Verifying files...' && \
+            if [ ! -f package.json ]; then \
+              echo 'Error: package.json not found' && exit 1; \
+            fi && \
+            if [ ! -f next.config.js ]; then \
+              echo 'Error: next.config.js not found' && exit 1; \
+            fi && \
+            # Install and build
+            echo 'Installing dependencies...' && \
+            export NODE_ENV=production && \
+            npm install && \
+            echo 'Building application...' && \
+            npm run build && \
+            # Start application
+            echo 'Starting application...' && \
+            export PORT=3000 HOST=0.0.0.0 && \
+            pm2 delete tino-tools || true && \
+            pm2 start npm --name tino-tools -- start && \
+            # Verify application is running
+            echo 'Verifying application...' && \
+            sleep 5 && \
+            if ! pm2 show tino-tools | grep -q 'status.*online'; then \
+              echo 'Error: Application failed to start' && exit 1; \
+            fi"
           
           # Clean up local files
           rm files_to_archive.txt deploy.tar.gz
