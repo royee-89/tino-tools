@@ -155,12 +155,14 @@ jobs:
             # Start application
             echo 'Starting application...' && \
             export NODE_ENV=production && \
+            export PATH=$PATH:$(pwd)/node_modules/.bin && \
             export PORT=3000 HOST=0.0.0.0 && \
+            npm install && \
             pm2 delete tino-tools || true && \
             pm2 start npm --name tino-tools -- start && \
             # Verify application is running
             echo 'Verifying application...' && \
-            sleep 5 && \
+            sleep 10 && \
             if ! pm2 show tino-tools | grep -q 'status.*online'; then \
               echo 'Error: Application failed to start' && exit 1; \
             fi"
@@ -210,21 +212,19 @@ jobs:
             if [ ! -d .next ]; then \
               echo 'Error: .next directory not found' && exit 1; \
             fi && \
-            # Install and build
-            echo 'Installing dependencies...' && \
-            export NODE_ENV=production && \
-            npm install && \
-            echo 'Building application...' && \
-            npm run build && \
             # Start application
             echo 'Starting application...' && \
+            export NODE_ENV=production && \
+            export PATH=$PATH:$(pwd)/node_modules/.bin && \
             export PORT=3000 HOST=0.0.0.0 && \
+            npm install && \
             pm2 delete tino-tools || true && \
             pm2 start npm --name tino-tools -- start && \
             # Verify application is running
             echo 'Verifying application...' && \
-            sleep 5 && \
+            sleep 10 && \
             if ! pm2 show tino-tools | grep -q 'status.*online'; then \
+              pm2 logs tino-tools --lines 20 && \
               echo 'Error: Application failed to start' && exit 1; \
             fi"; then
             
@@ -243,9 +243,8 @@ jobs:
                 chown -R root:root . && \
                 chmod -R 755 . && \
                 export NODE_ENV=production && \
+                export PATH=$PATH:$(pwd)/node_modules/.bin && \
                 npm install && \
-                npm run build && \
-                export PORT=3000 HOST=0.0.0.0 && \
                 pm2 delete tino-tools || true && \
                 pm2 start npm --name tino-tools -- start"
               
