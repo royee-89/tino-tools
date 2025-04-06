@@ -32,8 +32,8 @@ const Layout = ({ children }) => {
                   justifyContent="center"
                 >
                   <Image 
-                    src="/assets/brand/logo/logo.png" 
-                    alt="Tino Tools" 
+                    src="/images/logo.png" 
+                    alt="小匠工具集" 
                     boxSize="32px"
                     objectFit="contain"
                     transform="scale(1.2)"
@@ -46,7 +46,7 @@ const Layout = ({ children }) => {
                   fontWeight="600"
                   color="#000000"
                 >
-                  Tino Tools
+                  小匠工具集 (Tino Tools)
                 </Text>
               </HStack>
             </Link>
@@ -94,7 +94,10 @@ const Layout = ({ children }) => {
         <Container maxW="var(--max-width)">
           <VStack spacing={2} align="center">
             <HStack spacing={2} fontSize="sm" color="brand.gray.500">
-              <Text>© 2024 Tino Tools</Text>
+              <Text>© 2024 小匠工具集 (Tino Tools)</Text>
+              <Text>
+                月一科技有限公司 (MoonIQ)
+              </Text>
             </HStack>
             <HStack spacing={2} fontSize="sm" color="brand.gray.500">
               <ChakraLink href="https://beian.miit.gov.cn" isExternal>
