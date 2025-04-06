@@ -30,6 +30,13 @@ jobs:
       - name: Create deployment package
         run: |
           tar -czf deploy.tar.gz .next node_modules package.json package-lock.json public
+          ls -lh deploy.tar.gz
+      
+      - name: Debug SSH connection
+        run: |
+          echo "Testing SSH connection..."
+          ssh-keyscan -p ${{ secrets.SERVER_PORT }} ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+          ssh -o StrictHostKeyChecking=no -p ${{ secrets.SERVER_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} "pwd"
       
       - name: Copy files to server
         uses: appleboy/scp-action@v0.1.4
@@ -40,8 +47,12 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           source: "deploy.tar.gz"
           target: "/www/wwwroot/tino-tools"
+          debug: true
+          timeout: 60s
+          command_timeout: 30m
       
       - name: Deploy to server
+        if: success()
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SERVER_HOST }}
