@@ -155,4 +155,32 @@ tail -f /www/wwwroot/tino-tools/logs/monitor.log
 
 1. 内存使用告警：调整`TINO_MEMORY_THRESHOLD`
 2. CPU使用告警：调整`TINO_CPU_THRESHOLD`
-3. 响应时间告警：目前固定为2000ms，可修改`scripts/monitor.js` 
+3. 响应时间告警：目前固定为2000ms，可修改`scripts/monitor.js`
+
+### 腾讯云安全告警处理
+
+GitHub Actions每次运行时使用不同的动态IP地址，这可能导致腾讯云安全系统发送异常登录警告。解决方案：
+
+1. **配置腾讯云登录保护白名单**：
+   - 登录腾讯云控制台
+   - 进入"安全设置"或"安全防护"
+   - 找到"登录保护"或"异常登录保护"
+   - 添加白名单规则，指定GitHub Actions的IP范围
+
+2. **GitHub Actions IP地址范围**：
+   - GitHub Actions使用的IP地址范围可在以下地址查看：https://api.github.com/meta
+   - 关注`actions`字段下的IP地址范围
+   - 这些IP范围可能会定期更新
+
+3. **调整登录通知**：
+   - 如果无法配置完整的IP白名单，可以将登录通知级别从"安全警告"调整为"登录通知"
+   - 可在"消息订阅"中修改接收通知的方式
+
+4. **使用登录方式限制**：
+   - 配置仅允许使用SSH密钥登录，禁用密码登录
+   - 修改`/etc/ssh/sshd_config`：
+     ```
+     PasswordAuthentication no
+     PubkeyAuthentication yes
+     ```
+   - 重启SSH服务：`systemctl restart sshd` 
