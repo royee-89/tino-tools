@@ -32,7 +32,7 @@ const Layout = ({ children }) => {
                   justifyContent="center"
                 >
                   <Image 
-                    src="/images/logo.png" 
+                    src="/images/favicon/android-chrome-512x512.png" 
                     alt="小匠工具集" 
                     boxSize="32px"
                     objectFit="contain"
