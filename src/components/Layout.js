@@ -2,6 +2,7 @@ import { Box, Container, Flex, Text, IconButton, useBreakpointValue, VStack, HSt
 import { ChevronDownIcon } from '@chakra-ui/icons'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
+import VersionInfo from './VersionInfo'
 
 const Layout = ({ children }) => {
   const router = useRouter()
@@ -103,6 +104,7 @@ const Layout = ({ children }) => {
               <ChakraLink href="https://beian.miit.gov.cn" isExternal>
                 京ICP备2025114896号-1
               </ChakraLink>
+              <VersionInfo />
             </HStack>
           </VStack>
         </Container>
