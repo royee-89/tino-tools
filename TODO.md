@@ -1,6 +1,21 @@
 # 工具集网站任务清单
 
 ## 最高优先级任务 🚨
+- [x] 使用logo.png制作专业favicon图标集
+  - [x] 使用专业工具生成完整favicon套件
+    - [x] 生成不同尺寸的favicon.ico (16x16, 32x32, 48x48)
+    - [x] 生成适用于iOS设备的图标 (apple-touch-icon)
+    - [x] 生成适用于Android设备的图标 (192x192, 512x512)
+    - [x] 生成site.webmanifest文件
+  - [x] 替换现有favicon文件
+    - [x] 整理图标文件命名和目录结构
+    - [x] 更新HTML中的favicon引用链接
+    - [x] 确保所有设备和浏览器兼容
+  - [x] 验证favicon显示效果
+    - [x] 测试不同浏览器中的显示效果
+    - [x] 测试移动设备上的显示效果
+    - [x] 确认网站标签页图标正确显示
+
 - [ ] 网站 SEO 优化
   - [ ] Meta 标签优化
     - [ ] 完善每个页面的 title 和 description
@@ -404,4 +419,38 @@ public/
 - 只开放 22 端口（SSH）的访问
 - 仅允许 GitHub Actions 运行器的 IP 访问
 - 确保在部署完成后清理安全组规则
-- 考虑添加超时机制，避免规则残留 
+- 考虑添加超时机制，避免规则残留
+
+## 认证系统(auth-system)任务
+
+- [x] **将auth-system同步到GitHub**
+  - [x] 创建GitHub仓库
+  - [x] 设置远程连接
+  - [x] 推送代码到GitHub
+
+- [x] **修复auth-system验证bug**
+  - [x] 修复验证完MFA后跳回验证用户名密码的问题
+  - [x] 测试修复效果
+  - [x] 部署到服务器验证
+
+- [x] **设置GitHub Actions自动部署**
+  - [x] 创建auth-system部署工作流
+    - [x] 配置.github/workflows/deploy.yml
+    - [x] 设置GitHub Secrets (SSH密钥、服务器信息)
+    - [x] 编写部署脚本
+  - [x] 创建TinoTools部署工作流
+    - [x] 配置部署工作流文件
+    - [x] 设置必要的Secrets
+    - [x] 测试自动部署
+
+## 下一步计划
+
+- [ ] **配置GitHub仓库设置**
+  - [ ] 设置分支保护规则
+  - [ ] 添加README说明
+  - [ ] 配置适当的标签和里程碑
+
+- [ ] **优化认证系统**
+  - [ ] 添加用户管理功能
+  - [ ] 完善错误处理和日志记录
+  - [ ] 增强安全性措施 
