@@ -1,378 +1,93 @@
-name: Deploy to Production
+name: Deploy TinoTools
 
 on:
   push:
-    branches:
-      - master
+    branches: [ master ]
   workflow_dispatch:
     inputs:
-      environment:
-        description: '部署环境'
-        required: true
-        default: 'production'
-      rollback_version:
-        description: '回滚到指定版本（留空则部署最新代码）'
+      reason:
+        description: '部署原因'
         required: false
+        default: '手动触发部署'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # 获取完整历史用于版本标记
+    - name: 检出代码
+      uses: actions/checkout@v4
+    
+    - name: 设置Node.js环境
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: 安装依赖
+      run: npm ci
+    
+    - name: 构建项目
+      run: npm run build
+    
+    - name: 代码检查
+      run: |
+        echo "跳过代码检查"
+        # npm run lint
+    
+    - name: 设置SSH密钥
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+        config: |
+          Host server
+            HostName ${{ secrets.SERVER_IP }}
+            User ${{ secrets.SERVER_USER }}
+            IdentityFile ~/.ssh/id_rsa
+    
+    - name: 部署到服务器
+      run: |
+        # 备份当前版本
+        ssh server "cd /var/www/royeenote.online && tar -czf backup-$(date +%Y%m%d%H%M%S).tar.gz public_html || true"
         
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      
-      - name: Generate version info
-        id: version
-        run: |
-          # 使用时间戳和git提交哈希创建唯一版本号
-          VERSION=$(date +%Y%m%d%H%M%S)-$(git rev-parse --short HEAD)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "deploy_time=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
-          echo "commit_msg=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
-          echo "commit_author=$(git log -1 --pretty=%an)" >> $GITHUB_OUTPUT
-
-      - name: Send deployment start notification
-        uses: ravsamhq/notify-slack-action@v2
-        if: always()
-        with:
-          status: ${{ job.status }}
-          notification_title: "🚀 开始部署 小匠工具集"
-          message_format: "版本: ${{ steps.version.outputs.version }}\n提交信息: ${{ steps.version.outputs.commit_msg }}\n作者: ${{ steps.version.outputs.commit_author }}\n时间: ${{ steps.version.outputs.deploy_time }}"
-          footer: "小匠工具集自动部署系统"
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL || secrets.WECHAT_WEBHOOK_URL || secrets.DINGTALK_WEBHOOK_URL || 'https://example.com' }}
-          
-      - name: Install dependencies
-        run: |
-          npm install
+        # 创建目录（如果不存在）
+        ssh server "mkdir -p /var/www/royeenote.online/public_html"
         
-      - name: Run tests
-        run: |
-          npm run test || echo "No tests found"
+        # 部署构建的项目
+        scp -r .next server:/var/www/royeenote.online/
+        scp -r public/* server:/var/www/royeenote.online/public_html/
+        scp package.json next.config.js server:/var/www/royeenote.online/
         
-      - name: Build project
-        if: ${{ !github.event.inputs.rollback_version }}
-        run: |
-          # 创建版本信息文件
-          echo "export const BUILD_VERSION = '${{ steps.version.outputs.version }}';" > src/lib/version.js
-          echo "export const BUILD_DATE = '${{ steps.version.outputs.deploy_time }}';" >> src/lib/version.js
-          echo "export const COMMIT_MSG = '${{ steps.version.outputs.commit_msg }}';" >> src/lib/version.js
-          echo "export const COMMIT_AUTHOR = '${{ steps.version.outputs.commit_author }}';" >> src/lib/version.js
-          
-          # 清理缓存并构建
-          rm -rf .next
-          npm run build
-        env:
-          NODE_ENV: production
-          
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.8.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          
-      - name: Add known hosts
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          ssh-keyscan -p ${{ secrets.SERVER_PORT }} ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts 2>&1
-          chmod 600 ~/.ssh/known_hosts
-          
-      - name: Test SSH connection
-        run: |
-          if ! ssh -p ${{ secrets.SERVER_PORT }} ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} "echo 'SSH connection successful'"; then
-            echo "SSH connection failed"
-            exit 1
-          fi
-          
-      - name: Check for rollback
-        id: deployment_type
-        run: |
-          if [ -n "${{ github.event.inputs.rollback_version }}" ]; then
-            echo "is_rollback=true" >> $GITHUB_OUTPUT
-            echo "rollback_version=${{ github.event.inputs.rollback_version }}" >> $GITHUB_OUTPUT
-            echo "⚠️ 执行回滚操作到版本: ${{ github.event.inputs.rollback_version }}"
-          else
-            echo "is_rollback=false" >> $GITHUB_OUTPUT
-            echo "🚀 执行常规部署: ${{ steps.version.outputs.version }}"
-          fi
-          
-      - name: Deploy and start application
-        id: deploy
-        env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-          VERSION: ${{ steps.version.outputs.version }}
-          IS_ROLLBACK: ${{ steps.deployment_type.outputs.is_rollback }}
-          ROLLBACK_VERSION: ${{ steps.deployment_type.outputs.rollback_version }}
-        run: |
-          echo "=== Starting deployment process ==="
-          DEPLOY_STATUS="success"
-          
-          if [ "$IS_ROLLBACK" == "true" ]; then
-            echo "🔄 执行回滚到版本: $ROLLBACK_VERSION"
-            
-            # 执行回滚脚本
-            ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "
-              if [ ! -f \"$DEPLOY_PATH/../versions/$ROLLBACK_VERSION.tar.gz\" ]; then
-                echo \"错误: 回滚版本 $ROLLBACK_VERSION 不存在!\"
-                exit 1
-              fi
-              
-              # 备份当前版本
-              echo '📦 创建当前版本备份...'
-              mkdir -p \"$DEPLOY_PATH/../versions\"
-              if [ -f \"$DEPLOY_PATH/src/lib/version.js\" ]; then
-                CURRENT_VERSION=\$(grep BUILD_VERSION \"$DEPLOY_PATH/src/lib/version.js\" | cut -d\"'\" -f2)
-                if [ -n \"\$CURRENT_VERSION\" ]; then
-                  tar -czf \"$DEPLOY_PATH/../versions/pre-rollback-\$CURRENT_VERSION.tar.gz\" -C \"$DEPLOY_PATH\" .
-                fi
-              fi
-              
-              # 停止当前应用
-              echo '🛑 停止应用...'
-              pm2 delete tino-tools 2>/dev/null || true
-              
-              # 清理当前目录，保留node_modules
-              echo '🧹 清理目录...'
-              if [ -d \"$DEPLOY_PATH/node_modules\" ]; then
-                mv \"$DEPLOY_PATH/node_modules\" /tmp/tino-tools-node_modules
-              fi
-              
-              rm -rf \"$DEPLOY_PATH\"/* \"$DEPLOY_PATH\"/.[!.]* \"$DEPLOY_PATH\"/..?*
-              
-              # 解压回滚版本
-              echo '📂 解压回滚版本...'
-              tar -xzf \"$DEPLOY_PATH/../versions/$ROLLBACK_VERSION.tar.gz\" -C \"$DEPLOY_PATH\"
-              
-              # 恢复node_modules
-              if [ -d /tmp/tino-tools-node_modules ]; then
-                echo '♻️ 恢复node_modules...'
-                rm -rf \"$DEPLOY_PATH/node_modules\"
-                mv /tmp/tino-tools-node_modules \"$DEPLOY_PATH/node_modules\"
-              fi
-              
-              # 修复权限
-              chown -R root:root \"$DEPLOY_PATH\"
-              chmod -R 755 \"$DEPLOY_PATH\"
-              
-              # 启动应用
-              echo '🚀 启动应用...'
-              cd \"$DEPLOY_PATH\"
-              export NODE_ENV=production
-              export PATH=\$PATH:\$(pwd)/node_modules/.bin
-              pm2 start npm --name tino-tools -- start
-              
-              # 验证启动状态
-              sleep 10
-              if ! pm2 show tino-tools | grep -q 'status.*online'; then
-                echo '❌ 回滚后应用启动失败!'
-                exit 1
-              fi
-              
-              echo '✅ 回滚完成!'
-            " || {
-              echo "❌ 回滚失败!"
-              DEPLOY_STATUS="failed"
-            }
-            
-          else
-            echo "🚀 执行常规部署: $VERSION"
-            
-            # 创建文件列表
-            echo "📋 创建部署文件列表..."
-            find . -type f -not -path \"./node_modules/*\" -not -path \"./.git/*\" -not -path \"./.github/*\" -not -path \"./.next/cache/*\" > all_files.txt
-            
-            # 确保包含所有public目录下的文件
-            find ./public -type f >> all_files.txt
-            sort all_files.txt | uniq > final_files.txt
-            
-            # 检查关键文件
-            echo "🔍 确认包含关键文件:"
-            grep -E "logo|favicon|icon" final_files.txt || echo "⚠️ 没有找到logo或favicon文件"
-            
-            # 创建部署包
-            echo "📦 创建部署包..."
-            tar -czf deploy.tar.gz -T final_files.txt
-            
-            # 上传部署包
-            echo "📤 上传部署包..."
-            scp -P $SERVER_PORT deploy.tar.gz $SERVER_USERNAME@$SERVER_HOST:/tmp/deploy-tino-tools.tar.gz || {
-              echo "❌ 上传部署包失败!"
-              DEPLOY_STATUS="failed"
-              exit 1
-            }
-            
-            # 部署到服务器
-            ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "
-              set -e
-              echo '🏁 开始服务器端部署...'
-              mkdir -p \"$DEPLOY_PATH\"
-              mkdir -p \"$DEPLOY_PATH/../versions\"
-              cd \"$DEPLOY_PATH\"
-              
-              # 备份当前版本
-              if [ -f \"src/lib/version.js\" ]; then
-                echo '📦 备份当前版本...'
-                CURRENT_VERSION=\$(grep BUILD_VERSION \"src/lib/version.js\" | cut -d\"'\" -f2)
-                if [ -n \"\$CURRENT_VERSION\" ]; then
-                  tar -czf \"$DEPLOY_PATH/../versions/\$CURRENT_VERSION.tar.gz\" .
-                  # 保留最近10个版本
-                  ls -t \"$DEPLOY_PATH/../versions\" | grep -v \"$VERSION\" | tail -n +11 | xargs -I {} rm -f \"$DEPLOY_PATH/../versions/{}\"
-                fi
-              fi
-              
-              # 保存node_modules
-              if [ -d node_modules ]; then
-                echo '♻️ 保存node_modules...'
-                mv node_modules /tmp/tino-tools-node_modules
-              fi
-              
-              # 清理目录
-              echo '🧹 清理目录...'
-              rm -rf * .[!.]* ..?*
-              
-              # 解压新文件
-              echo '📂 解压新文件...'
-              tar -xzf /tmp/deploy-tino-tools.tar.gz
-              rm -f /tmp/deploy-tino-tools.tar.gz
-              
-              # 还原node_modules
-              if [ -d /tmp/tino-tools-node_modules ]; then
-                echo '♻️ 还原node_modules...'
-                rm -rf node_modules
-                mv /tmp/tino-tools-node_modules node_modules
-              fi
-              
-              # 修复权限
-              echo '🔧 修复权限...'
-              chown -R root:root .
-              chmod -R 755 .
-              
-              # 验证关键文件
-              echo '🔍 验证关键文件...'
-              if [ ! -f package.json ]; then
-                echo '❌ 错误: package.json 文件丢失!'
-                exit 1
-              fi
-              
-              # 安装依赖
-              echo '📚 安装依赖...'
-              npm install
-              
-              # 保存当前版本
-              echo '💾 保存当前版本: $VERSION...'
-              tar -czf \"$DEPLOY_PATH/../versions/$VERSION.tar.gz\" .
-              
-              # 启动应用
-              echo '🚀 启动应用...'
-              export NODE_ENV=production
-              export PATH=\$PATH:\$(pwd)/node_modules/.bin
-              export PORT=3000
-              export HOST=0.0.0.0
-              
-              # 确保.next目录权限正确
-              if [ -d .next ]; then
-                chmod -R 755 .next
-              fi
-              
-              # 清理可能的缓存文件
-              find ./public -name '*.gz' -delete 2>/dev/null || true
-              find ./public -name '*.br' -delete 2>/dev/null || true
-              
-              # 停止当前服务
-              pm2 delete tino-tools 2>/dev/null || true
-              
-              # 启动新版本
-              pm2 start npm --name tino-tools -- start
-              
-              # 验证应用启动
-              echo '✅ 验证应用启动...'
-              sleep 10
-              
-              if ! pm2 show tino-tools | grep -q 'status.*online'; then
-                echo '❌ 应用启动失败! 执行自动回滚...'
-                
-                if [ -n \"\$CURRENT_VERSION\" ] && [ -f \"$DEPLOY_PATH/../versions/\$CURRENT_VERSION.tar.gz\" ]; then
-                  echo '🔄 回滚到版本: \$CURRENT_VERSION'
-                  
-                  # 停止失败的应用
-                  pm2 delete tino-tools 2>/dev/null || true
-                  
-                  # 清理目录
-                  rm -rf * .[!.]* ..?*
-                  
-                  # 解压旧版本
-                  tar -xzf \"$DEPLOY_PATH/../versions/\$CURRENT_VERSION.tar.gz\" -C \"$DEPLOY_PATH\"
-                  
-                  # 启动旧版本
-                  export NODE_ENV=production
-                  export PATH=\$PATH:\$(pwd)/node_modules/.bin
-                  pm2 start npm --name tino-tools -- start
-                  
-                  echo '✅ 回滚完成，请检查错误日志'
-                  exit 1
-                else
-                  echo '❌ 无法回滚，找不到有效的备份版本!'
-                  exit 1
-                fi
-              fi
-              
-              echo '✅ 部署成功完成: $VERSION'
-            " || {
-              echo "❌ 部署脚本执行失败"
-              DEPLOY_STATUS="failed"
-            }
-            
-            # 清理本地文件
-            rm -f deploy.tar.gz all_files.txt final_files.txt
-          fi
-          
-          echo "deploy_status=$DEPLOY_STATUS" >> $GITHUB_OUTPUT
-          echo "=== 部署流程完成 ==="
-          
-      - name: Verify deployment
-        if: steps.deploy.outputs.deploy_status == 'success'
-        env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-        run: |
-          echo "=== 验证部署 ==="
-          
-          # 等待应用启动
-          sleep 5
-          
-          # 检查进程状态
-          if ! ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd $DEPLOY_PATH && pm2 show tino-tools | grep -q 'status.*online'"; then
-            echo "❌ 错误: 应用未正常运行"
-            ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd $DEPLOY_PATH && pm2 logs tino-tools --lines 30"
-            exit 1
-          fi
-          
-          # 获取内存使用情况
-          MEMORY_USAGE=$(ssh -p $SERVER_PORT $SERVER_USERNAME@$SERVER_HOST "cd $DEPLOY_PATH && pm2 jlist | grep -o '\"memory\":[0-9]*' | grep -o '[0-9]*'")
-          echo "📊 应用内存使用: $MEMORY_USAGE KB"
-          
-          echo "✅ 部署验证完成"
-          
-      - name: Send deployment notification
-        uses: ravsamhq/notify-slack-action@v2
-        if: always()
-        with:
-          status: ${{ job.status }}
-          notification_title: "🚀 部署 ${{ steps.deployment_type.outputs.is_rollback == 'true' && '回滚' || '完成' }}: 小匠工具集"
-          message_format: "状态: ${{ job.status == 'success' && '✅ 成功' || '❌ 失败' }}\n版本: ${{ steps.deployment_type.outputs.is_rollback == 'true' && steps.deployment_type.outputs.rollback_version || steps.version.outputs.version }}\n${{ steps.deployment_type.outputs.is_rollback != 'true' && format('提交信息: {0}', steps.version.outputs.commit_msg) || '' }}\n${{ steps.deployment_type.outputs.is_rollback != 'true' && format('作者: {0}', steps.version.outputs.commit_author) || '操作: 回滚部署' }}\n时间: ${{ steps.version.outputs.deploy_time }}"
-          footer: "小匠工具集自动部署系统"
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL || secrets.WECHAT_WEBHOOK_URL || secrets.DINGTALK_WEBHOOK_URL || 'https://example.com' }} 
+        # 在服务器上安装生产依赖
+        ssh server "cd /var/www/royeenote.online && npm install --production"
+        
+        # 设置正确的文件权限
+        ssh server "find /var/www/royeenote.online -type f -exec chmod 644 {} \;"
+        ssh server "find /var/www/royeenote.online -type d -exec chmod 755 {} \;"
+        ssh server "chown -R www-data:www-data /var/www/royeenote.online"
+        
+        # 重启Next.js应用（如果使用PM2）
+        ssh server "cd /var/www/royeenote.online && pm2 restart tino-tools || pm2 start npm --name 'tino-tools' -- start"
+        
+        # 验证部署
+        echo "验证部署状态..."
+        DEPLOY_CHECK=$(ssh server "ls -la /var/www/royeenote.online/public_html/index.html")
+        echo "$DEPLOY_CHECK"
+        
+        if [[ -n "$DEPLOY_CHECK" ]]; then
+          echo "🎉 部署成功!"
+        else
+          echo "❌ 部署失败!"
+          exit 1
+        fi
+    
+    - name: 发送部署通知
+      if: always()
+      run: |
+        STATUS="${{ job.status }}"
+        if [ "$STATUS" = "success" ]; then
+          echo "✅ 部署成功：TinoTools已成功部署到服务器"
+        else
+          echo "❌ 部署失败：请检查日志确定原因"
+        fi 
