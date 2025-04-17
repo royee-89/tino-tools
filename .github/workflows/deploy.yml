@@ -49,33 +49,33 @@ jobs:
     - name: 部署到服务器
       run: |
         # 备份当前版本
-        ssh server "cd /var/www/royeenote.online && tar -czf backup-$(date +%Y%m%d%H%M%S).tar.gz public_html || true"
+        ssh server "cd /www/wwwroot/tinotools/main && tar -czf backup-$(date +%Y%m%d%H%M%S).tar.gz . || true"
         
         # 创建目录（如果不存在）
-        ssh server "mkdir -p /var/www/royeenote.online/public_html"
+        ssh server "mkdir -p /www/wwwroot/tinotools/main"
         
         # 部署构建的项目
-        scp -r .next server:/var/www/royeenote.online/
-        scp -r public/* server:/var/www/royeenote.online/public_html/
-        scp package.json next.config.js server:/var/www/royeenote.online/
+        scp -r .next server:/www/wwwroot/tinotools/main/
+        scp -r public/* server:/www/wwwroot/tinotools/main/
+        scp package.json next.config.js server:/www/wwwroot/tinotools/main/
         
         # 在服务器上安装生产依赖
-        ssh server "cd /var/www/royeenote.online && npm install --production"
+        ssh server "cd /www/wwwroot/tinotools/main && npm install --production"
         
         # 设置正确的文件权限
-        ssh server "find /var/www/royeenote.online -type f -exec chmod 644 {} \;"
-        ssh server "find /var/www/royeenote.online -type d -exec chmod 755 {} \;"
-        ssh server "chown -R www-data:www-data /var/www/royeenote.online"
+        ssh server "find /www/wwwroot/tinotools/main -type f -exec chmod 644 {} \;"
+        ssh server "find /www/wwwroot/tinotools/main -type d -exec chmod 755 {} \;"
+        ssh server "chown -R nginx:nginx /www/wwwroot/tinotools/main"
         
         # 重启Next.js应用（如果使用PM2）
-        ssh server "cd /var/www/royeenote.online && pm2 restart tino-tools || pm2 start npm --name 'tino-tools' -- start"
+        ssh server "cd /www/wwwroot/tinotools/main && pm2 restart tino-tools || pm2 start npm --name 'tino-tools' -- start"
         
         # 验证部署
         echo "验证部署状态..."
-        DEPLOY_CHECK=$(ssh server "ls -la /var/www/royeenote.online/public_html/index.html")
+        DEPLOY_CHECK=$(ssh server "ls -la /www/wwwroot/tinotools/main/next.config.js || echo 'Not found'")
         echo "$DEPLOY_CHECK"
         
-        if [[ -n "$DEPLOY_CHECK" ]]; then
+        if [[ "$DEPLOY_CHECK" != *"Not found"* ]]; then
           echo "🎉 部署成功!"
         else
           echo "❌ 部署失败!"
@@ -87,7 +87,7 @@ jobs:
       run: |
         STATUS="${{ job.status }}"
         if [ "$STATUS" = "success" ]; then
-          echo "✅ 部署成功：TinoTools已成功部署到服务器"
+          echo "✅ 部署成功：TinoTools已成功部署到服务器(https://tinotools.cn)"
         else
           echo "❌ 部署失败：请检查日志确定原因"
         fi 
