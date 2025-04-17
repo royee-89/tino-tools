@@ -42,8 +42,8 @@ jobs:
         known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
         config: |
           Host server
-            HostName ${{ secrets.SERVER_IP }}
-            User ${{ secrets.SERVER_USER }}
+            HostName ${{ secrets.SERVER_HOST }}
+            User ${{ secrets.SERVER_USERNAME }}
             IdentityFile ~/.ssh/id_rsa
     
     - name: 部署到服务器
