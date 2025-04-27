@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "csv2html": "node scripts/csv2html.js"
+    "csv2html": "node scripts/csv2html.js",
+    "postinstall": "chmod +x node_modules/.bin/next"
   },
   "keywords": [
     "tools",
