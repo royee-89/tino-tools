@@ -50,13 +50,16 @@ export default function ToolPage({ toolId }) {
 }
 
 export async function getStaticPaths() {
-  // 预生成所有工具页面路径，确保静态导出或 SSR 均可访问
-  const tools = getAllTools()
-  const paths = tools.map(tool => ({ params: { id: tool.info.id } }))
+  // 排除已有静态页面工具，避免路径冲突
+  const exclude = ['markdown-chat', 'empty-tool'];
+  const tools = getAllTools();
+  const paths = tools
+    .filter(tool => !exclude.includes(tool.info.id))
+    .map(tool => ({ params: { id: tool.info.id } }));
   return {
     paths,
     fallback: false
-  }
+  };
 }
 
 export async function getStaticProps({ params }) {
