@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router'
 import { Box, Container, Heading, Text } from '@chakra-ui/react'
 import Layout from '@/components/Layout'
-import { getToolById } from '@/lib/tools'
+import { getToolById, getAllTools } from '@/lib/tools'
 
 export default function ToolPage({ toolId }) {
   const router = useRouter()
@@ -50,9 +50,12 @@ export default function ToolPage({ toolId }) {
 }
 
 export async function getStaticPaths() {
+  // 预生成所有工具页面路径，确保静态导出或 SSR 均可访问
+  const tools = getAllTools()
+  const paths = tools.map(tool => ({ params: { id: tool.info.id } }))
   return {
-    paths: [],
-    fallback: true
+    paths,
+    fallback: false
   }
 }
 
