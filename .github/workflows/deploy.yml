@@ -54,21 +54,13 @@ jobs:
         # 创建目录（如果不存在）
         ssh server "mkdir -p /www/wwwroot/tinotools/main"
         
-        # 部署构建的项目
-        scp -r .next server:/www/wwwroot/tinotools/main/
-        scp -r public/* server:/www/wwwroot/tinotools/main/
-        scp package.json next.config.js server:/www/wwwroot/tinotools/main/
+        # 同步构建产物：使用 rsync 避免 scp 卡住
+        rsync -az --delete -e 'ssh -o StrictHostKeyChecking=no' .next/ server:/www/wwwroot/tinotools/main/.next/
+        rsync -az --delete -e 'ssh -o StrictHostKeyChecking=no' public/ server:/www/wwwroot/tinotools/main/public/
+        rsync -az -e 'ssh -o StrictHostKeyChecking=no' package.json next.config.js server:/www/wwwroot/tinotools/main/
         
-        # 在服务器上安装生产依赖 - 改为完整安装以生成package-lock.json
-        ssh server "cd /www/wwwroot/tinotools/main && npm install"
-        
-        # 设置正确的文件权限
-        ssh server "find /www/wwwroot/tinotools/main -type f -exec chmod 644 {} \;"
-        ssh server "find /www/wwwroot/tinotools/main -type d -exec chmod 755 {} \;"
-        ssh server "chown -R nginx:nginx /www/wwwroot/tinotools/main"
-        
-        # 重启Next.js应用（如果使用PM2）
-        ssh server "cd /www/wwwroot/tinotools/main && pm2 restart tino-tools || pm2 start npm --name 'tino-tools' -- start"
+        # 远程安装生产依赖、重置文件权限并重启服务
+        ssh server "cd /www/wwwroot/tinotools/main && npm install --production && find . -type f -exec chmod 644 {} \; && find . -type d -exec chmod 755 {} \; && chown -R nginx:nginx /www/wwwroot/tinotools/main && pm2 restart tino-tools || pm2 start npm --name 'tino-tools' -- start"
         
         # 验证部署
         echo "验证部署状态..."
