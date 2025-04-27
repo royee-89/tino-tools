@@ -1,20 +1,11 @@
 # 用户任务清单 👤
 
-## 已完成任务 ✅
-- [x] GitHub 仓库创建和配置
+## 立即需要 ⚡️
+- [x] GitHub 仓库创建
   - [x] 创建名为 `tino-tools` 的新仓库
-  - [x] 提供仓库 URL：https://github.com/royee-89/tino-tools.git
+  - [x] 提供仓库 URL 给 AI 助手：https://github.com/royee-89/tino-tools.git
   - [x] 确认访问权限设置（Public）
-  - [x] 添加仓库描述（通过 README.md）
-- [x] Git 和 SSH 配置
-  - [x] 确认并更新 Git 用户信息
-  - [x] 生成新的 SSH key
-  - [x] 将 SSH key 添加到 GitHub 账号
-  - [x] 测试 SSH 连接
-- [x] 初始代码提交
-  - [x] 创建 .gitignore
-  - [x] 添加 README.md
-  - [x] 推送代码到远程仓库
+  - [ ] 添加仓库描述：A versatile collection of development tools and utilities, including Markdown converter, text processors, formatters and more.
 
 ## 环境准备 🔧
 - [ ] 腾讯云服务器信息确认

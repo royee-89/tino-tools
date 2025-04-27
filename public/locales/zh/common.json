@@ -1,0 +1,40 @@
+{
+  "site": {
+    "name": "小匠工具集",
+    "description": "开发者的效率工具箱",
+    "fullDescription": "小匠工具集（Tino Tools）为开发者提供各种实用的开发工具和实用程序，提升开发效率"
+  },
+  "nav": {
+    "home": "首页",
+    "discover": "发现",
+    "changelog": "更新",
+    "favorites": "收藏",
+    "profile": "我的"
+  },
+  "footer": {
+    "copyright": "© 2024",
+    "company": "月一科技"
+  },
+  "tools": {
+    "search": {
+      "title": "快速寻找工具",
+      "placeholder": "输入关键词搜索工具",
+      "button": "提交需求",
+      "empty": "没找到需要的工具？",
+      "emptyDesc": "告诉我们你的需求，我们会及时收集相关工具"
+    },
+    "categories": {
+      "code": "代码编辑",
+      "design": "设计工具",
+      "efficiency": "效率工具",
+      "ai": "AI 工具"
+    },
+    "hot": "热门工具",
+    "new": "最新工具",
+    "try": "立即体验"
+  },
+  "language": {
+    "zh": "中文",
+    "en": "English"
+  }
+} 

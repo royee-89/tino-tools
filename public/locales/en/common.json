@@ -1,0 +1,40 @@
+{
+  "site": {
+    "name": "Tino Tools",
+    "description": "Developer's Efficiency Toolkit",
+    "fullDescription": "Tino Tools provides developers with various practical development tools and utilities to improve development efficiency"
+  },
+  "nav": {
+    "home": "Home",
+    "discover": "Discover",
+    "changelog": "Changelog",
+    "favorites": "Favorites",
+    "profile": "Profile"
+  },
+  "footer": {
+    "copyright": "© 2024",
+    "company": "Mooniq Tech"
+  },
+  "tools": {
+    "search": {
+      "title": "Quick Tool Search",
+      "placeholder": "Enter keywords to search tools",
+      "button": "Submit Request",
+      "empty": "Can't find the tool you need?",
+      "emptyDesc": "Tell us your requirements, and we'll collect relevant tools promptly"
+    },
+    "categories": {
+      "code": "Code Editing",
+      "design": "Design Tools",
+      "efficiency": "Efficiency Tools",
+      "ai": "AI Tools"
+    },
+    "hot": "Popular Tools",
+    "new": "Latest Tools",
+    "try": "Try Now"
+  },
+  "language": {
+    "zh": "中文",
+    "en": "English"
+  }
+} 

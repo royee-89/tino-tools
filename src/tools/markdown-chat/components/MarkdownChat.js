@@ -10,6 +10,7 @@ import {
   IconButton,
 } from '@chakra-ui/react'
 import { marked } from 'marked'
+import analytics from '@/lib/analytics'
 
 const MarkdownChat = () => {
   const [markdown, setMarkdown] = useState('')
@@ -18,6 +19,10 @@ const MarkdownChat = () => {
 
   // 处理 Markdown 转换
   const handleConvert = () => {
+    analytics.event('markdown', 'convert', 'Markdown 转换')
+    if (window.MtaH5) {
+      window.MtaH5.clickStat('convert_markdown');
+    }
     if (!markdown.trim()) {
       toast({
         title: '请输入 Markdown 文本',
@@ -63,6 +68,10 @@ const MarkdownChat = () => {
 
   // 复制 HTML
   const handleCopy = () => {
+    analytics.event('markdown', 'copy', 'HTML 复制')
+    if (window.MtaH5) {
+      window.MtaH5.clickStat('copy_html');
+    }
     const chatHtml = preview
       .map(
         (msg) => `

@@ -53,9 +53,9 @@ npm run dev
 
 ## 开发计划
 
-- [ ] 工具集首页开发
-  - [ ] 工具卡片布局
-  - [ ] 分类展示
+- [x] 工具集首页开发
+  - [x] 工具卡片布局
+  - [x] 分类展示
   - [ ] 搜索功能
 
 - [ ] Markdown 转换工具优化
@@ -64,18 +64,30 @@ npm run dev
   - [ ] 图片上传功能
   - [ ] 表情符号支持
 
+## 部署
+
+本项目使用 GitHub Actions 进行自动部署。每次推送到 master 分支时会自动触发部署流程：
+
+1. 自动构建
+2. 部署到服务器 (https://tinotools.cn)
+3. 重启服务
+
+### 手动部署
+
+如需手动触发部署，可以在GitHub Actions页面手动运行部署工作流。
+
+### 服务器维护
+
+服务器配置和监控脚本位于 `deploy/scripts/` 目录下：
+
+- `setup.sh`: 服务器初始化配置脚本
+- `healthcheck.sh`: 服务器健康检查脚本
+- `monitor.sh`: 应用监控和自动恢复脚本
+
 ## 贡献指南
 
 欢迎提交 Issue 和 Pull Request 来帮助改进项目。
 
 ## 许可证
 
-MIT License
-
-## 部署
-
-本项目使用 GitHub Actions 进行自动部署。每次推送到 master 分支时会自动触发部署流程：
-
-1. 自动构建
-2. 部署到服务器
-3. 重启服务 
+MIT License 

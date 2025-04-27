@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
-import { Tabs, TabList, TabPanels, Tab, TabPanel, Box, Table, Thead, Tr, Th, Tbody, Td, chakra, Tooltip, Badge } from '@chakra-ui/react'
-import { Line } from 'react-chartjs-2'
+import { useState, useEffect, useMemo } from 'react'
+import { Tabs, TabList, TabPanels, Tab, TabPanel, Box, Table, Thead, Tr, Th, Tbody, Td, Badge, IconButton, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, useDisclosure } from '@chakra-ui/react'
+import LineChart from './LineChart'
+import { ViewIcon } from '@chakra-ui/icons'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,7 +13,6 @@ import {
   Legend
 } from 'chart.js'
 import _ from 'lodash'
-import LineChart from './LineChart'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, ChartTooltip, Legend)
 
@@ -74,20 +74,24 @@ function extractRows(fixedArr, dividendArr) {
   })
 }
 
-// 计算每个账户的回本/翻倍行索引
+// 计算每个账户的各倍数首次出现行索引
 function computeMarkers(rows) {
-  const keys = ['cash1', 'cash2', 'cash3', 'cash3fh', 'cash4', 'cash4fh']
-  const markers = {}
+  const keys = ['cash1', 'cash2', 'cash3', 'cash3fh', 'cash4', 'cash4fh'];
+  const markers = {};
   keys.forEach(k => {
-    let recoup = -1, dbl = -1
-    rows.forEach((r,i)=>{
-      const val = parseFloat(r[k] || '0')
-      if (recoup===-1 && val >= 100000) recoup = i
-      if (dbl===-1 && val >= 200000) dbl = i
-    })
-    markers[k] = {recoup, dbl}
-  })
-  return markers
+    const map = {};
+    rows.forEach((r, i) => {
+      const val = parseFloat(r[k] || '0');
+      const multiple = Math.floor(val / 100000);
+      for (let m = 1; m <= multiple; m++) {
+        if (map[m] === undefined) {
+          map[m] = i;
+        }
+      }
+    });
+    markers[k] = map;
+  });
+  return markers;
 }
 
 export default function ComparePage() {
@@ -95,6 +99,33 @@ export default function ComparePage() {
   const [data25, setData25] = useState([])
   const [marker10, setMarker10] = useState({})
   const [marker25, setMarker25] = useState({})
+  const [tabIndex, setTabIndex] = useState(0)
+  const { isOpen, onOpen, onClose } = useDisclosure()
+  const [modalChartData, setModalChartData] = useState(null)
+
+  // 预计算 Charts 数据
+  const chartData10 = useMemo(() => ({
+    labels: data10.map(r => r.year),
+    datasets: [
+      { label: '鑫盈家', data: data10.map(r=>parseFloat(r.cash1||0)), borderColor: '#3182ce', tension:0.3 },
+      { label: '守护神', data: data10.map(r=>parseFloat(r.cash2||0)), borderColor: '#2f855a', tension:0.3 },
+      { label: '福满盈固定', data: data10.map(r=>parseFloat(r.cash3||0)), borderColor: '#d69e2e', tension:0.3 },
+      { label: '福满盈固+红', data: data10.map(r=>parseFloat(r.cash3fh||0)), borderColor: '#b7791f', tension:0.3 },
+      { label: '一生中意固定', data: data10.map(r=>parseFloat(r.cash4||0)), borderColor: '#805ad5', tension:0.3 },
+      { label: '一生中意固+红', data: data10.map(r=>parseFloat(r.cash4fh||0)), borderColor: '#6b46c1', tension:0.3 },
+    ]
+  }), [data10])
+  const chartData25 = useMemo(() => ({
+    labels: data25.map(r => r.year),
+    datasets: [
+      { label: '鑫盈家', data: data25.map(r=>parseFloat(r.cash1||0)), borderColor: '#3182ce', tension:0.3 },
+      { label: '守护神', data: data25.map(r=>parseFloat(r.cash2||0)), borderColor: '#2f855a', tension:0.3 },
+      { label: '福满盈固定', data: data25.map(r=>parseFloat(r.cash3||0)), borderColor: '#d69e2e', tension:0.3 },
+      { label: '福满盈固+红', data: data25.map(r=>parseFloat(r.cash3fh||0)), borderColor: '#b7791f', tension:0.3 },
+      { label: '一生中意固定', data: data25.map(r=>parseFloat(r.cash4||0)), borderColor: '#805ad5', tension:0.3 },
+      { label: '一生中意固+红', data: data25.map(r=>parseFloat(r.cash4fh||0)), borderColor: '#6b46c1', tension:0.3 },
+    ]
+  }), [data25])
 
   useEffect(() => {
     async function fetchData() {
@@ -115,95 +146,142 @@ export default function ComparePage() {
   }, [])
 
   const renderTable = (rows, markers) => {
-    // 收集需要展示的行索引
-    const highlightIdx = new Set()
-    // 来自回本/翻倍
-    Object.values(markers).forEach(m => {
-      if (m.recoup >= 0) highlightIdx.add(m.recoup)
-      if (m.dbl >= 0) highlightIdx.add(m.dbl)
-    })
-
+    // 收集需要展示的行索引：包括首次倍数出现，以及特殊年龄
+    const highlightIdx = new Set();
+    Object.values(markers).forEach(map => {
+      Object.values(map).forEach(idx => highlightIdx.add(idx));
+    });
     const shouldShow = (idx, ageStr) => {
-      const age = parseInt(ageStr)
-      const paying = parseFloat(rows[idx].premiumYear || '0') > 0
-      return paying || highlightIdx.has(idx) || age === 18 || age % 10 === 0 || age >= 100
-    }
-
-    // 图表数据
-    const chartData = {
-      labels: rows.map(r => r.year),
-      datasets: [
-        { label: '鑫盈家', data: rows.map(r=>parseFloat(r.cash1||0)), borderColor: '#3182ce', tension:0.3 },
-        { label: '守护神', data: rows.map(r=>parseFloat(r.cash2||0)), borderColor: '#2f855a', tension:0.3 },
-        { label: '福满盈固定', data: rows.map(r=>parseFloat(r.cash3||0)), borderColor: '#d69e2e', tension:0.3 },
-        { label: '福满盈固+红', data: rows.map(r=>parseFloat(r.cash3fh||0)), borderColor: '#b7791f', tension:0.3 },
-        { label: '一生中意固定', data: rows.map(r=>parseFloat(r.cash4||0)), borderColor: '#805ad5', tension:0.3 },
-        { label: '一生中意固+红', data: rows.map(r=>parseFloat(r.cash4fh||0)), borderColor: '#6b46c1', tension:0.3 },
-      ]
-    }
-
+      const age = parseInt(ageStr, 10);
+      const paying = parseFloat(rows[idx].premiumYear || '0') > 0;
+      return (
+        paying ||
+        age === 18 ||
+        age % 10 === 0 ||
+        age >= 100 ||
+        highlightIdx.has(idx)
+      );
+    };
     return (
-      <Box overflow="auto" maxH="70vh" border="1px" borderColor="gray.200" mb={6}>
-        <Table size="sm" position="relative">
-          <Thead position="sticky" top={0} bg="gray.50" zIndex={1}>
-            <Tr>
-              <Th rowSpan={2}>保单年度</Th>
-              <Th rowSpan={2}>年龄</Th>
-              <Th rowSpan={2}>年度保费</Th>
-              <Th rowSpan={2}>累计保费</Th>
-              <Th colSpan={1}>中英人寿鑫盈家终身寿险</Th>
-              <Th colSpan={1}>爱心人寿守护神2.0终身寿险</Th>
-              <Th colSpan={2}>中英人寿福满盈3.0终身寿险</Th>
-              <Th colSpan={2}>中意一生中意（尊享版）终身寿险</Th>
-            </Tr>
-            <Tr>
-              <Th>账户价值</Th>
-              <Th>账户价值</Th>
-              <Th>固定账户价值</Th>
-              <Th>固定+红利账户价值</Th>
-              <Th>固定账户价值</Th>
-              <Th>固定+红利账户价值</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {rows.map((r, rowIndex) => {
-              if (!shouldShow(rowIndex, r.age)) return null
-              return (
-                <Tr key={r.year}>
-                  <Td>{r.year}</Td>
-                  <Td>{r.age}</Td>
-                  <Td isNumeric>{r.premiumYear}</Td>
-                  <Td isNumeric>{r.premiumTotal}</Td>
-                  {['cash1','cash2','cash3','cash3fh','cash4','cash4fh'].map((key,idx)=>(
-                    <Td key={key} isNumeric>
-                      {r[key]}
-                      {markers[key]?.recoup===rowIndex && <Badge ml={1} colorScheme="green">回本</Badge>}
-                      {markers[key]?.dbl===rowIndex && <Badge ml={1} colorScheme="blue">翻倍</Badge>}
-                    </Td>
-                  ))}
-                </Tr>
-              )
-            })}
-          </Tbody>
-        </Table>
-        {/* 曲线图 - 固定底部 */}
-        <Box position="sticky" bottom="0" bg="white" pt={4} pb={2} zIndex={5} boxShadow="0 -2px 6px rgba(0,0,0,0.05)">
-          <LineChart data={chartData} />
+      <Box position="relative" mb={6}>
+        <Box overflow="auto" maxH="70vh" border="1px" borderColor="gray.200">
+          <Table size="sm" variant="striped" colorScheme="gray" position="relative">
+            <Thead position="sticky" top={0} bg="gray.50" zIndex={1}>
+              <Tr>
+                <Th rowSpan={2}>保单年度</Th>
+                <Th rowSpan={2}>年龄</Th>
+                <Th rowSpan={2}>年度保费</Th>
+                <Th rowSpan={2}>累计保费</Th>
+                <Th colSpan={1}>中英人寿鑫盈家终身寿险</Th>
+                <Th colSpan={1}>爱心人寿守护神2.0终身寿险</Th>
+                <Th colSpan={2}>中英人寿福满盈3.0终身寿险</Th>
+                <Th colSpan={2}>中意一生中意（尊享版）终身寿险</Th>
+              </Tr>
+              <Tr>
+                <Th>账户价值</Th>
+                <Th>账户价值</Th>
+                <Th>固定账户价值</Th>
+                <Th>固定+红利账户价值</Th>
+                <Th>固定账户价值</Th>
+                <Th>固定+红利账户价值</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {rows.map((r, rowIndex) => {
+                if (!shouldShow(rowIndex, r.age)) return null;
+                return (
+                  <Tr key={r.year}>
+                    <Td>{r.year}</Td>
+                    <Td>{r.age}</Td>
+                    <Td isNumeric>{r.premiumYear}</Td>
+                    <Td isNumeric>{r.premiumTotal}</Td>
+                    {['cash1','cash2','cash3','cash3fh','cash4','cash4fh'].map((key,idx)=>(
+                      <Td key={key} isNumeric position="relative">
+                        {r[key]}
+                        {/* 右上角倍数标记 */}
+                        {(() => {
+                          const val = parseFloat(r[key] || '0');
+                          const multiple = Math.floor(val / 100000);
+                          // 根据倍数动态计算绿色深度，从 green.300 开始，每增加一级加100，最大 green.800
+                          const shade = Math.min(800, 200 + multiple * 100);
+                          const bgColor = `green.${shade}`;
+                          // 仅标注首个倍数出现的行
+                          if (multiple >= 1 && markers[key]?.[multiple] === rowIndex) {
+                            return (
+                              <Box
+                                position="absolute"
+                                top="2px"
+                                right="2px"
+                                bg={bgColor}
+                                color="white"
+                                px="2px"
+                                fontSize="xs"
+                                borderRadius="2px"
+                                zIndex={0}
+                              >
+                                {`x${multiple}`}
+                              </Box>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </Td>
+                    ))}
+                  </Tr>
+                );
+              })}
+            </Tbody>
+          </Table>
         </Box>
       </Box>
     )
   }
 
   return (
-    <Tabs variant="enclosed" colorScheme="green">
-      <TabList>
-        <Tab>1万10年缴</Tab>
-        <Tab>2万5年缴</Tab>
-      </TabList>
-      <TabPanels>
-        <TabPanel>{renderTable(data10, marker10)}</TabPanel>
-        <TabPanel>{renderTable(data25, marker25)}</TabPanel>
-      </TabPanels>
-    </Tabs>
+    <>
+      <Box position="relative">
+        {/* 查看增长曲线按钮 */}
+        <IconButton
+          aria-label="查看增长曲线"
+          icon={<ViewIcon />}
+          size="sm"
+          position="absolute"
+          top={2}
+          right={2}
+          zIndex={2}
+          onClick={() => {
+            setModalChartData(tabIndex === 0 ? chartData10 : chartData25)
+            onOpen()
+          }}
+        />
+        {/* 数据表 */}
+        <Tabs
+          mt="10px"
+          index={tabIndex}
+          onChange={(index) => setTabIndex(index)}
+          variant="enclosed"
+          colorScheme="green"
+        >
+          <TabList>
+            <Tab>1万10年缴</Tab>
+            <Tab>2万5年缴</Tab>
+          </TabList>
+          <TabPanels>
+            <TabPanel>{renderTable(data10, marker10)}</TabPanel>
+            <TabPanel>{renderTable(data25, marker25)}</TabPanel>
+          </TabPanels>
+        </Tabs>
+      </Box>
+      <Modal isOpen={isOpen} onClose={onClose} size="xl">
+        <ModalOverlay />
+        <ModalContent maxW="90vw">
+          <ModalHeader>现金价值增长曲线</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {modalChartData && <LineChart data={modalChartData} />}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    </>
   )
 } 
