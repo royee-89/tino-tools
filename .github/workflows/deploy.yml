@@ -59,6 +59,9 @@ jobs:
         rsync -az --delete -e 'ssh -o StrictHostKeyChecking=no' public/ server:/www/wwwroot/tinotools/main/public/
         rsync -az -e 'ssh -o StrictHostKeyChecking=no' package.json next.config.js server:/www/wwwroot/tinotools/main/
         
+        # 同步保险产品数据文件 (JSON)
+        rsync -az -e 'ssh -o StrictHostKeyChecking=no' "产品比较数据/" server:/www/wwwroot/tinotools/main/产品比较数据/
+        
         # 远程安装生产依赖、重置文件权限并重启服务
         ssh server "cd /www/wwwroot/tinotools/main && npm install --production && find . -type f -exec chmod 644 {} \; && find . -type d -exec chmod 755 {} \; && chown -R nginx:nginx /www/wwwroot/tinotools/main && pm2 restart tino-tools || pm2 start npm --name 'tino-tools' -- start"
         
