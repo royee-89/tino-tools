@@ -89,7 +89,7 @@ export default function Home() {
         {/* 搜索框 */}
         <Box bg="white" p={6} borderRadius="16px" boxShadow="sm">
           <Text fontSize="xl" fontWeight="bold" mb={4}>
-            快速寻找工具
+            搜索工具
           </Text>
           <InputGroup>
             <InputLeftElement 
@@ -179,7 +179,7 @@ export default function Home() {
             热门工具
           </Text>
           <SimpleGrid columns={isMobile ? 1 : 2} spacing={4}>
-            {tools.slice(0, 2).map((tool, index) => (
+            {tools.slice(0, 4).map((tool, index) => (
               <Link key={tool.info.id} href={tool.routes.index} passHref legacyBehavior>
                 <ChakraLink _hover={{ textDecoration: 'none' }}>
                   <Box

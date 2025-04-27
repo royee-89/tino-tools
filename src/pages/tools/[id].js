@@ -3,8 +3,9 @@ import { Box, Container, Heading, Text } from '@chakra-ui/react'
 import Layout from '@/components/Layout'
 import { getToolById } from '@/lib/tools'
 
-export default function ToolPage({ tool }) {
+export default function ToolPage({ toolId }) {
   const router = useRouter()
+  const tool = getToolById(toolId)
   
   // 如果页面正在生成，显示加载状态
   if (router.isFallback) {
@@ -66,7 +67,7 @@ export async function getStaticProps({ params }) {
 
   return {
     props: {
-      tool
+      toolId: params.id
     },
     revalidate: 60 // 每分钟重新生成页面
   }

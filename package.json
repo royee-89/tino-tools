@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "csv2html": "node scripts/csv2html.js"
   },
   "keywords": [
     "tools",
@@ -20,14 +21,16 @@
     "@chakra-ui/react": "^2.8.0",
     "@emotion/react": "^11.11.0",
     "@emotion/styled": "^11.11.0",
+    "axios": "^1.6.5",
+    "chart.js": "^4.4.9",
     "framer-motion": "^10.16.4",
     "lodash": "^4.17.21",
     "marked": "^12.0.0",
     "next": "^14.0.4",
+    "node-schedule": "^2.1.1",
     "react": "^18.2.0",
+    "react-chartjs-2": "^5.3.0",
     "react-dom": "^18.2.0",
-    "sass": "^1.69.7",
-    "axios": "^1.6.5",
-    "node-schedule": "^2.1.1"
+    "sass": "^1.69.7"
   }
 }

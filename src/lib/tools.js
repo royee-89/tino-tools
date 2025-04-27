@@ -44,6 +44,7 @@ export const ToolConfig = {
 export const tools = [
   markdownChatConfig,
   emptyToolConfig,
+  require('@/tools/insurance-compare').config,
 ]
 
 // 获取所有工具
