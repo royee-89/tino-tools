@@ -18,7 +18,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, C
 
 // 辅助加载 JSON
 async function loadJson(relativePath) {
-  const url = `/api/insurance-data?file=${encodeURIComponent(relativePath)}`
+  const url = `/api/insurance-data?file=${encodeURI(relativePath)}`
   const res = await fetch(url)
   if (!res.ok) throw new Error('load fail')
   return res.json()
