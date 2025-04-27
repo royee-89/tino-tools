@@ -48,8 +48,8 @@ jobs:
     
     - name: 部署到服务器
       run: |
-        # 备份当前版本
-        ssh server "cd /www/wwwroot/tinotools/main && tar -czf backup-$(date +%Y%m%d%H%M%S).tar.gz . || true"
+        # 备份当前版本（已注释，临时跳过）
+        # ssh server "cd /www/wwwroot/tinotools/main && tar -czf backup-$(date +%Y%m%d%H%M%S).tar.gz . || true"
         
         # 创建目录（如果不存在）
         ssh server "mkdir -p /www/wwwroot/tinotools/main"
