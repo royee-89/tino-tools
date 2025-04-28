@@ -48,16 +48,28 @@ jobs:
     
     - name: 部署到服务器
       run: |
-        # === 开发模式部署 (Development Deploy) ===
-        # 在服务器上拉取最新代码并以开发模式启动
-        ssh server "
-          cd ~/dev-tinotools || git clone https://github.com/royee-89/tino-tools.git ~/dev-tinotools;
-          cd ~/dev-tinotools;
-          git pull;
-          npm ci;
-          chmod +x node_modules/.bin/next;
-          pm2 restart dev-tino-tools || pm2 start npm --name 'dev-tinotools' -- run dev -- -H 0.0.0.0 -p 80
-        "
+        # 备份当前版本（可选）
+        # ssh server "cd /www/wwwroot/tinotools/main && tar -czf backup-$(date +%Y%m%d%H%M%S).tar.gz . || true"
+        # 创建目录（如果不存在）
+        ssh server "mkdir -p /www/wwwroot/tinotools/main"
+        # 同步构建产物：使用 rsync 避免 scp 卡住
+        rsync -az --delete -e 'ssh -o StrictHostKeyChecking=no' .next/ server:/www/wwwroot/tinotools/main/.next/
+        rsync -az --delete -e 'ssh -o StrictHostKeyChecking=no' public/ server:/www/wwwroot/tinotools/main/public/
+        rsync -az -e 'ssh -o StrictHostKeyChecking=no' package.json next.config.js server:/www/wwwroot/tinotools/main/
+        # 同步保险产品数据文件 (JSON)
+        rsync -az -e 'ssh -o StrictHostKeyChecking=no' "产品比较数据/" server:/www/wwwroot/tinotools/main/产品比较数据/
+        # 远程安装生产依赖、重置文件权限并重启服务
+        ssh server "cd /www/wwwroot/tinotools/main && npm install --production && find . -type f -exec chmod 644 {} \; && find . -type d -exec chmod 755 {} \; && chown -R nginx:nginx /www/wwwroot/tinotools/main && pm2 restart tino-tools || pm2 start npm --name 'tino-tools' -- start"
+        # 验证部署
+        echo "验证部署状态..."
+        DEPLOY_CHECK=$(ssh server "ls -la /www/wwwroot/tinotools/main/next.config.js || echo 'Not found'")
+        echo "$DEPLOY_CHECK"
+        if [[ "$DEPLOY_CHECK" != *"Not found"* ]]; then
+          echo "🎉 部署成功!"
+        else
+          echo "❌ 部署失败!"
+          exit 1
+        fi
     
     - name: 发送部署通知
       if: always()
