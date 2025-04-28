@@ -14,8 +14,6 @@ import {
   Link as ChakraLink,
 } from '@chakra-ui/react'
 import Link from 'next/link'
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
-import { useTranslation } from 'next-i18next'
 import Layout from '@/components/Layout'
 import { tools } from '@/lib/tools'
 import { debounce } from 'lodash'
@@ -57,7 +55,6 @@ const cardColors = [
 const getCardColor = (index) => cardColors[index % cardColors.length]
 
 export default function Home() {
-  const { t } = useTranslation('common')
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [isSearching, setIsSearching] = useState(false)
@@ -89,7 +86,7 @@ export default function Home() {
         {/* 搜索框 */}
         <Box bg="white" p={6} borderRadius="16px" boxShadow="sm">
           <Text fontSize="xl" fontWeight="bold" mb={4}>
-            {t('tools.search.title')}
+            搜索工具
           </Text>
           <InputGroup>
             <InputLeftElement 
@@ -99,7 +96,7 @@ export default function Home() {
               paddingTop="3"
             />
             <Input
-              placeholder={t('tools.search.placeholder')}
+              placeholder="输入关键词搜索工具..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               bg="brand.bg"
@@ -143,11 +140,11 @@ export default function Home() {
                 </VStack>
               ) : searchTerm.trim() ? (
                 <Box textAlign="center" p={6} bg="gray.50" borderRadius="12px">
-                  <Text fontSize="xl" mb={2}>{t('tools.search.empty')}</Text>
+                  <Text fontSize="xl" mb={2}>没有找到相关工具</Text>
                   <Text color="gray.600" mb={4}>
-                    {t('tools.search.emptyDesc')}
+                    试试其他关键词，或者告诉我们你需要什么工具
                   </Text>
-                  <Button colorScheme="blue">{t('tools.search.button')}</Button>
+                  <Button colorScheme="blue">提交工具建议</Button>
                 </Box>
               ) : null}
             </Box>
@@ -245,10 +242,10 @@ export default function Home() {
   )
 }
 
-export async function getStaticProps({ locale }) {
-  return {
-    props: {
-      ...(await serverSideTranslations(locale || 'en', ['common'])),
-    },
-  }
-} 
+// export async function getStaticProps({ locale }) {
+//   return {
+//     props: {
+//       ...(await serverSideTranslations(locale || 'en', ['common'])),
+//     },
+//   }
+// } 
