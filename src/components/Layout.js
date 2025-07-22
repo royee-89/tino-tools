@@ -102,7 +102,7 @@ const Layout = ({ children }) => {
             </HStack>
             <HStack spacing={2} fontSize="sm" color="brand.gray.500">
               <ChakraLink href="https://beian.miit.gov.cn" isExternal>
-                京ICP备2025114896号-1
+                京ICP备2025114896号-2
               </ChakraLink>
               <VersionInfo />
             </HStack>
@@ -145,4 +145,4 @@ const Layout = ({ children }) => {
   )
 }
 
-export default Layout 
+export default Layout

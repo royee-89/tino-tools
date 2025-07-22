@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Tabs, TabList, TabPanels, Tab, TabPanel, Box, Table, Thead, Tr, Th, Tbody, Td, Badge, IconButton, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, useDisclosure } from '@chakra-ui/react'
-import LineChart from './LineChart'
+import dynamic from 'next/dynamic'
+const LineChart = dynamic(() => import('./LineChart'), { ssr: false })
 import { ViewIcon } from '@chakra-ui/icons'
 import {
   Chart as ChartJS,
@@ -14,7 +15,9 @@ import {
 } from 'chart.js'
 import _ from 'lodash'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, ChartTooltip, Legend)
+if (typeof window !== 'undefined') {
+  ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, ChartTooltip, Legend)
+}
 
 // 辅助加载 JSON
 async function loadJson(relativePath) {
