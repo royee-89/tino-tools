@@ -95,7 +95,7 @@ const Layout = ({ children }) => {
         <Container maxW="var(--max-width)">
           <VStack spacing={2} align="center">
             <HStack spacing={2} fontSize="sm" color="brand.gray.500">
-              <Text>© 2024 小匠工具集 (Tino Tools)</Text>
+              <Text>© {new Date().getFullYear()} 小匠工具集 (Tino Tools)</Text>
               <Text>
                 月一科技有限公司 (MoonIQ)
               </Text>
